@@ -14,7 +14,7 @@ type Pt = readonly [number, number];
 const POSES: Record<ArmPose, { S: Pt; E: Pt; H: Pt }> = {
   down: { S: [58, -108], E: [76, -42], H: [80, 18] },
   reach: { S: [58, -108], E: [98, -58], H: [160, -70] },
-  hold: { S: [58, -108], E: [90, -42], H: [66, -86] },
+  hold: { S: [58, -108], E: [100, -44], H: [64, -80] },
   cradle: { S: [58, -108], E: [80, -40], H: [6, -32] },
   table: { S: [58, -108], E: [82, -46], H: [40, -62] },
 };
@@ -77,7 +77,7 @@ export interface PersonProps {
   /** [brazo trasero (-x), brazo delantero (+x)] */
   arms?: [ArmPose, ArmPose];
   sleeves?: Sleeves;
-  /** Se dibuja en coordenadas locales entre el torso y los brazos (vasos, bebés, botellas…). */
+  /** Se dibuja en coordenadas locales sobre los brazos; con la pose 'hold' los dedos rodean x 34–72, y -91 a -67 (vasos, bebés, botellas…). */
   held?: ReactNode;
   /** Retraso del parpadeo, para que no parpadeen todos a la vez. */
   blinkDelay?: number;
@@ -118,7 +118,10 @@ function Arm({
       <path d={tubePath(S, E, H, 0, 1)} fill={skin} />
       {/* Manga: hombro redondeado del mismo color de la camiseta */}
       <circle cx={S[0]} cy={S[1]} r="16" fill={shirt} />
-      <path d={tubePath(S, E, H, 0, sleeveEnd, 3)} fill={shirt} />
+      <path
+        d={tubePath(S, E, H, 0, sleeveEnd, 3)}
+        fill={shirt}
+      />
       {/* Dobladillo */}
       <line
         x1={hx - ty * hemW}
@@ -133,6 +136,33 @@ function Arm({
       {/* Mano */}
       <ellipse cx={H[0]} cy={H[1]} rx="12" ry="13" fill={skin} />
       <ellipse cx={H[0] - 4 * side} cy={H[1] + 3} rx="5" ry="6" fill={skinShadow} opacity="0.3" />
+    </g>
+  );
+}
+
+/** Dedos que rodean el objeto por delante: la palma queda al costado (en H) y el pulgar encima. */
+function Fist({ side, skin, skinShadow }: { side: 1 | -1; skin: string; skinShadow: string }) {
+  const [hx, hy] = POSES.hold.H;
+  const x0 = (hx - 30) * side;
+  const x1 = (hx + 8) * side;
+  const left = Math.min(x0, x1);
+  const w = Math.abs(x1 - x0);
+  return (
+    <g>
+      <rect x={left} y={hy - 11} width={w} height="24" rx="11" fill={skin} />
+      {[-1, 5].map((dy) => (
+        <path
+          key={dy}
+          d={`M ${x0 + 5 * side} ${hy + dy} Q ${(hx - 14) * side} ${hy + dy + 2.5} ${(hx - 2) * side} ${hy + dy}`}
+          stroke={skinShadow}
+          strokeWidth="1.8"
+          fill="none"
+          strokeLinecap="round"
+          opacity="0.7"
+        />
+      ))}
+      {/* Pulgar */}
+      <ellipse cx={(hx - 20) * side} cy={hy - 10} rx="8" ry="5" fill={skin} stroke={skinShadow} strokeWidth="1.2" strokeOpacity="0.5" />
     </g>
   );
 }
@@ -155,6 +185,7 @@ export function Person({
   blinkDelay = 0,
   id,
 }: PersonProps) {
+  const grips = arms.includes('hold');
   const armProps = { skin: skinColor, skinShadow, shirt: shirtColor, shirtShadow, sleeves };
 
   return (
@@ -201,10 +232,14 @@ export function Person({
       <rect x="-16" y="-142" width="32" height="34" rx="14" fill={skinColor} />
       <path d="M -16 -134 Q 0 -120 16 -134 L 16 -122 Q 0 -110 -16 -122 Z" fill={skinShadow} opacity="0.7" />
 
-      {held}
-
+      {!grips && held}
       <Arm side={-1} pose={arms[0]} {...armProps} />
       <Arm side={1} pose={arms[1]} {...armProps} />
+
+      {/* Al sujetar, el objeto va sobre el antebrazo y el puño lo envuelve por delante */}
+      {grips && held}
+      {arms[1] === 'hold' && <Fist side={1} skin={skinColor} skinShadow={skinShadow} />}
+      {arms[0] === 'hold' && <Fist side={-1} skin={skinColor} skinShadow={skinShadow} />}
 
       {/* Orejas */}
       <circle cx="-43" cy="-165" r="10" fill={skinColor} />

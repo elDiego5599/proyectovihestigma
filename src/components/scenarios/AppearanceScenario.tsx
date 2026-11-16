@@ -26,7 +26,7 @@ const faceY = P_Y - 165 * P_SCALE;
 function Magnifier() {
   return (
     <g>
-      <line x1="66" y1="-86" x2={LENS.x - 10} y2={LENS.y + 20} stroke="#334155" strokeWidth="9" strokeLinecap="round" />
+      <line x1="48" y1="-78" x2={LENS.x - 10} y2={LENS.y + 20} stroke="#334155" strokeWidth="9" strokeLinecap="round" />
       <circle cx={LENS.x} cy={LENS.y} r="24" fill="#E0F2FE" opacity="0.75" stroke="#334155" strokeWidth="6" />
       <path d={`M ${LENS.x - 12} ${LENS.y - 8} Q ${LENS.x - 8} ${LENS.y - 14} ${LENS.x} ${LENS.y - 15}`} stroke="#FFFFFF" strokeWidth="4" fill="none" strokeLinecap="round" />
     </g>
@@ -47,25 +47,6 @@ function Label({ x, i, text }: { x: number; i: number; text: string }) {
         <text y="7" textAnchor="middle" fontSize="20" fontWeight="800" fill={ink} fontFamily="inherit">
           {text}
         </text>
-      </g>
-    </g>
-  );
-}
-
-/** Prueba rápida de VIH: lo único que permite saberlo. */
-function TestKit() {
-  return (
-    <g transform="translate(400 96)">
-      <g id="test-kit" opacity="0">
-        <rect x="-62" y="-30" width="124" height="60" rx="14" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="2" />
-        <rect x="-44" y="-10" width="56" height="20" rx="6" fill="#F1F5F9" stroke="#CBD5E1" strokeWidth="1.5" />
-        <line x1="-30" y1="-6" x2="-30" y2="6" stroke="#E11D48" strokeWidth="3" />
-        <line x1="-6" y1="-6" x2="-6" y2="6" stroke="#E11D48" strokeWidth="3" />
-        <circle cx="34" cy="0" r="9" fill="none" stroke="#94A3B8" strokeWidth="2" />
-        <g transform="translate(58 -26)">
-          <circle r="15" fill="#10B981" />
-          <path d="M -6 0 L -1 5 L 7 -5" stroke="#FFFFFF" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        </g>
       </g>
     </g>
   );
@@ -116,8 +97,7 @@ export function AppearanceScenario(_props: ScenarioProps) {
 
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.6 });
     tl.set('#beam', { attr: { x2: LENS_W.x, y2: LENS_W.y }, opacity: 0 })
-      .set('.ask', { scale: 0, opacity: 0, transformOrigin: '50% 100%' })
-      .set('#test-kit', { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' });
+      .set('.ask', { scale: 0, opacity: 0, transformOrigin: '50% 100%' });
 
     // Andrés examina a cada persona con su lupa: por fuera no se nota nada
     PEOPLE.forEach((p, i) => {
@@ -128,16 +108,13 @@ export function AppearanceScenario(_props: ScenarioProps) {
         .to('#beam', { opacity: 0, duration: 0.25 }, t + 1.2);
     });
 
-    // Solo una prueba de VIH permite saberlo
-    tl.to('#test-kit', { opacity: 1, scale: 1, duration: 0.6, ease: 'back.out(1.8)' }, 5.4)
-      .to('#test-kit', { scale: 1.06, duration: 0.5, repeat: 3, yoyo: true, ease: 'sine.inOut' }, 6)
-      .to('.ask, #test-kit', { opacity: 0, duration: 0.5 }, 8.4);
+    tl.to('.ask', { opacity: 0, duration: 0.5 }, 7.6);
   });
 
   return (
     <SceneRoot rootRef={rootRef}>
       <Stage
-        label="Andrés mira con una lupa a tres personas en la calle; todas se ven sanas y sobre ellas aparece VIH, Sano y Sano aunque se ven igual. Al final aparece una prueba de VIH, la única forma de saberlo."
+        label="Andrés mira con una lupa a tres personas en la calle; todas se ven sanas y sobre ellas aparece VIH, Sano y Sano aunque se ven igual."
         background={<Background />}
       >
         <Person
@@ -189,7 +166,6 @@ export function AppearanceScenario(_props: ScenarioProps) {
         {PEOPLE.map((p, i) => (
           <Label key={p.x} x={p.x} i={i} text={p.label} />
         ))}
-        <TestKit />
       </Stage>
     </SceneRoot>
   );
