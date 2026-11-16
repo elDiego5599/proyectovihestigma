@@ -133,35 +133,35 @@ export function SimulationScreen() {
   const score = results.filter(Boolean).length;
 
   return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#F0F4F8] text-[#0F172A]">
+    <div className="flex h-dvh w-full flex-col overflow-hidden bg-[#F0F4F8] text-[#0F172A]">
       {/* Header editorial con Mito o Realidad en alto contraste y presencia real */}
-      <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-[rgba(15,23,42,0.08)] bg-white px-6 sm:px-12 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+      <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-[rgba(15,23,42,0.08)] bg-white px-4 sm:px-12 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
         {/* Lado izquierdo: indicador de pasos */}
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5" aria-hidden="true">
+          <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
             {SCENARIOS.map((scenario, dotIndex) => (
               <span
                 key={scenario.id}
                 className={`h-2 rounded-full transition-all duration-300 ${
                   dotIndex === index && !finished
-                    ? `w-7 ${results[dotIndex] === undefined ? 'bg-[#2563EB]' : results[dotIndex] ? 'bg-[#10B981]' : 'bg-[#F43F5E]'}`
+                    ? `w-5 sm:w-7 ${results[dotIndex] === undefined ? 'bg-[#2563EB]' : results[dotIndex] ? 'bg-[#10B981]' : 'bg-[#F43F5E]'}`
                     : results[dotIndex] === true
-                      ? 'w-3.5 bg-[#10B981]'
+                      ? 'w-2 sm:w-3.5 bg-[#10B981]'
                       : results[dotIndex] === false
-                        ? 'w-3.5 bg-[#F43F5E]'
-                        : 'w-3.5 bg-[#CBD5E1]'
+                        ? 'w-2 sm:w-3.5 bg-[#F43F5E]'
+                        : 'w-2 sm:w-3.5 bg-[#CBD5E1]'
                 }`}
               />
             ))}
           </div>
-          <span className="text-[13px] font-bold tracking-tight text-[#475569]">
+          <span className="hidden text-[13px] font-bold tracking-tight text-[#475569] sm:inline">
             {index + 1} / {SCENARIOS.length}
           </span>
         </div>
 
         {/* Centro absoluto: Título nítido, prominente y con autoridad visual */}
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-          <h1 className="text-[20px] font-black tracking-[-0.035em] text-[#0F172A] sm:text-[22px]">
+          <h1 className="whitespace-nowrap text-[17px] font-black tracking-[-0.035em] text-[#0F172A] sm:text-[22px]">
             Mito o Realidad
           </h1>
         </div>
@@ -173,10 +173,11 @@ export function SimulationScreen() {
             onClick={handleRestart}
             whileTap={{ scale: 0.94 }}
             transition={{ type: 'spring', duration: 0.22, bounce: 0 }}
-            className="flex h-9 items-center gap-2 rounded-xl border border-[rgba(15,23,42,0.14)] bg-white px-3.5 text-[12.5px] font-bold text-[#334155] shadow-xs transition-colors hover:border-[#0F172A] hover:text-[#0F172A]"
+            aria-label="Reiniciar"
+            className="flex h-9 items-center gap-2 rounded-xl border border-[rgba(15,23,42,0.14)] bg-white px-2.5 sm:px-3.5 text-[12.5px] font-bold text-[#334155] shadow-xs transition-colors hover:border-[#0F172A] hover:text-[#0F172A]"
           >
             <RestartIcon />
-            Reiniciar
+            <span className="hidden sm:inline">Reiniciar</span>
           </motion.button>
         </div>
       </header>
@@ -219,9 +220,9 @@ export function SimulationScreen() {
           </motion.div>
         </main>
       ) : (
-      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-between overflow-hidden px-4 py-4 sm:px-10">
+      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-center gap-4 overflow-hidden px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:justify-between sm:gap-0 sm:px-10">
         {/* Contenedor visual del escenario con iluminación limpia */}
-        <div className="relative flex h-full max-h-[64vh] w-full max-w-[1240px] flex-1 items-center justify-center">
+        <div className="relative flex aspect-[1100/480] w-full max-w-[1240px] flex-none items-center justify-center sm:aspect-auto sm:h-full sm:max-h-[64vh] sm:flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={meta.id}
@@ -237,7 +238,7 @@ export function SimulationScreen() {
         </div>
 
         {/* Tarjeta de interacción: misma altura en pregunta, acierto y error */}
-        <div className="w-full max-w-[1100px] shrink-0 pt-3">
+        <div className="w-full max-w-[1100px] shrink-0 sm:pt-3">
           <div className="relative grid min-h-[168px] overflow-hidden rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white px-6 py-5 sm:px-8 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
             {/* Ambos estados ocupan la misma celda: la tarjeta mide siempre lo del más alto */}
                 <motion.div
@@ -262,7 +263,7 @@ export function SimulationScreen() {
                         className="flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] text-[15px] font-black uppercase tracking-[0.04em] text-[#0F172A] transition-colors hover:border-[#94A3B8] hover:bg-white"
                       >
                         {choice}
-                        <kbd className="rounded-md border border-[#CBD5E1] bg-white px-1.5 py-0.5 text-[11px] font-bold text-[#64748B]">
+                        <kbd className="hidden rounded-md sm:inline border border-[#CBD5E1] bg-white px-1.5 py-0.5 text-[11px] font-bold text-[#64748B]">
                           {choice === 'mito' ? 'M' : 'R'}
                         </kbd>
                       </motion.button>
