@@ -7,9 +7,9 @@ interface ScenarioProps {
   isResolved?: boolean;
 }
 
-function Glass({ x, y, juice = '#FB923C' }: { x: number; y: number; juice?: string }) {
+function Glass({ x, y, juice = '#FB923C', scale = 1 }: { x: number; y: number; juice?: string; scale?: number }) {
   return (
-    <g transform={`translate(${x} ${y})`}>
+    <g transform={`translate(${x} ${y}) scale(${scale})`}>
       <ellipse cx="0" cy="1" rx="16" ry="4" fill="#0F172A" opacity="0.12" />
       <path d="M -14 -46 L 14 -46 L 11 0 L -11 0 Z" fill="#FFFFFF" opacity="0.55" stroke="#94A3B8" strokeWidth="1.5" />
       <path d="M -12.5 -28 L 12.5 -28 L 11 0 L -11 0 Z" fill={juice} opacity="0.9" />
@@ -133,7 +133,7 @@ export function SocialContactScenario(_props: ScenarioProps) {
             hairStyle="bun"
             expression="happy"
             arms={['table', 'hold']}
-            held={<Glass x={46} y={-58} juice="#A855F7" />}
+            held={<Glass x={48} y={-58} scale={1.3} juice="#A855F7" />}
           />
         </g>
 
@@ -151,7 +151,7 @@ export function SocialContactScenario(_props: ScenarioProps) {
             hairStyle="bob"
             expression="happy"
             arms={['table', 'hold']}
-            held={<Glass x={46} y={-58} juice="#FACC15" />}
+            held={<Glass x={48} y={-58} scale={1.3} juice="#FACC15" />}
             blinkDelay={2.1}
           />
         </g>
