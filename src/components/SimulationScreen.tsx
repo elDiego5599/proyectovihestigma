@@ -7,6 +7,8 @@ import { BloodborneScenario } from './scenarios/BloodborneScenario';
 import { SexualRiskScenario } from './scenarios/SexualRiskScenario';
 import { MotherChildScenario } from './scenarios/MotherChildScenario';
 import { HygieneScenario } from './scenarios/HygieneScenario';
+import { AppearanceScenario } from './scenarios/AppearanceScenario';
+import { HivAidsScenario } from './scenarios/HivAidsScenario';
 
 const SCENE_ART = [
   MosquitoScenario,
@@ -15,6 +17,8 @@ const SCENE_ART = [
   SexualRiskScenario,
   MotherChildScenario,
   HygieneScenario,
+  AppearanceScenario,
+  HivAidsScenario,
 ];
 
 function ArrowIcon() {
