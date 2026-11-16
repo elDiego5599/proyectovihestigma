@@ -76,11 +76,43 @@ function CrossIcon() {
   );
 }
 
+const STORAGE_KEY = 'mito-realidad-progreso';
+
+interface Progress {
+  index: number;
+  answer: Answer | null;
+  results: boolean[];
+  finished: boolean;
+}
+
+/** Progreso guardado: recargar la página no reinicia la actividad. */
+function loadProgress(): Progress {
+  const empty: Progress = { index: 0, answer: null, results: [], finished: false };
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Progress | null;
+    if (saved && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < SCENARIOS.length) {
+      return { ...empty, ...saved };
+    }
+  } catch {
+    /* sin almacenamiento disponible: se empieza de cero */
+  }
+  return empty;
+}
+
 export function SimulationScreen() {
-  const [index, setIndex] = useState(0);
-  const [answer, setAnswer] = useState<Answer | null>(null);
-  const [results, setResults] = useState<boolean[]>([]);
-  const [finished, setFinished] = useState(false);
+  const [initial] = useState(loadProgress);
+  const [index, setIndex] = useState(initial.index);
+  const [answer, setAnswer] = useState<Answer | null>(initial.answer);
+  const [results, setResults] = useState<boolean[]>(initial.results);
+  const [finished, setFinished] = useState(initial.finished);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ index, answer, results, finished }));
+    } catch {
+      /* ignorar */
+    }
+  }, [index, answer, results, finished]);
 
   const meta = SCENARIOS[index];
   const SceneArt = SCENE_ART[index];
