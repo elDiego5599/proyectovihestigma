@@ -1,190 +1,178 @@
-import { useEffect, useRef } from 'react';
 import { gsap } from '../../lib/gsap';
 import { Person } from '../art/Person';
+import { Stage, SceneRoot, useSceneAnimation } from '../art/Stage';
+import { Table } from '../art/Table';
 
-export function SocialContactScenario() {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+interface ScenarioProps {
+  isResolved?: boolean;
+}
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+function Glass({ x, y, juice = '#FB923C' }: { x: number; y: number; juice?: string }) {
+  return (
+    <g transform={`translate(${x} ${y})`}>
+      <ellipse cx="0" cy="1" rx="16" ry="4" fill="#0F172A" opacity="0.12" />
+      <path d="M -14 -46 L 14 -46 L 11 0 L -11 0 Z" fill="#FFFFFF" opacity="0.55" stroke="#94A3B8" strokeWidth="1.5" />
+      <path d="M -12.5 -28 L 12.5 -28 L 11 0 L -11 0 Z" fill={juice} opacity="0.9" />
+      <ellipse cx="0" cy="-28" rx="12.5" ry="2.5" fill={juice} />
+      <line x1="-8" y1="-40" x2="-6" y2="-6" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" opacity="0.8" />
+      {/* Pajita */}
+      <line x1="4" y1="-24" x2="12" y2="-60" stroke="#EF4444" strokeWidth="3.5" strokeLinecap="round" />
+    </g>
+  );
+}
 
-    const context = gsap.context(() => {
-      gsap.set('#social-heart', {
-        opacity: 0.25,
-        scale: 0.8,
-        transformOrigin: 'center center',
-      });
-      gsap.set('#social-heart-two', {
-        opacity: 0,
-        scale: 0.6,
-        transformOrigin: 'center center',
-      });
+function Plate() {
+  return (
+    <g transform="translate(550 378)">
+      <ellipse cx="0" cy="4" rx="64" ry="13" fill="#0F172A" opacity="0.12" />
+      <ellipse cx="0" cy="0" rx="62" ry="13" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="1.5" />
+      <ellipse cx="0" cy="-1" rx="44" ry="8.5" fill="#F8FAFC" stroke="#E2E8F0" strokeWidth="1" />
+      {/* Arepas / galletas y frutas */}
+      <ellipse cx="-18" cy="-6" rx="17" ry="7" fill="#F5D08A" stroke="#D9A54C" strokeWidth="1.2" />
+      <ellipse cx="6" cy="-9" rx="17" ry="7" fill="#F5D08A" stroke="#D9A54C" strokeWidth="1.2" />
+      <circle cx="24" cy="-6" r="7" fill="#EF4444" />
+      <circle cx="-34" cy="-3" r="6" fill="#22C55E" />
+      <path d="M 24 -12 q 2 -4 5 -4" stroke="#15803D" strokeWidth="1.5" fill="none" />
+    </g>
+  );
+}
 
-      const lean = gsap.timeline({
-        repeat: -1,
-        yoyo: true,
-        repeatDelay: 1.1,
-        defaults: {
-          duration: 1.7,
-          ease: 'sine.inOut',
-          transformOrigin: '50% 100%',
-        },
-      });
+function Cutlery({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x} ${y})`} strokeLinecap="round">
+      {/* Tenedor */}
+      <line x1="0" y1="0" x2="10" y2="-22" stroke="#94A3B8" strokeWidth="3" />
+      <path d="M 9 -21 l 2 -8 M 12 -20 l 3 -7 M 6 -22 l 1 -8" stroke="#94A3B8" strokeWidth="1.6" />
+      {/* Cuchara */}
+      <line x1="16" y1="2" x2="26" y2="-18" stroke="#94A3B8" strokeWidth="3" />
+      <ellipse cx="28" cy="-23" rx="4" ry="6" transform="rotate(26 28 -23)" fill="#94A3B8" />
+    </g>
+  );
+}
 
-      lean
-        .to('#social-a', { rotation: 7, x: 8 }, 0)
-        .to('#social-b', { rotation: -7, x: -8 }, 0)
-        .to('#social-heart', { opacity: 0.95, scale: 1, duration: 0.5 }, 1.1)
-        .to('#social-heart-two', { opacity: 0.8, scale: 1, duration: 0.45 }, 1.45);
+function Heart({ x, y, size = 1, className }: { x: number; y: number; size?: number; className?: string }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${size})`}>
+      <path
+        className={className}
+        d="M 0 6 C -14 -4, -12 -16, -4 -16 C -1 -16, 0 -13, 0 -12 C 0 -13, 1 -16, 4 -16 C 12 -16, 14 -4, 0 6 Z"
+        fill="#F43F5E"
+        opacity="0"
+      />
+    </g>
+  );
+}
 
-      gsap.to('#social-heart', {
-        y: -9,
-        duration: 2.2,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-      });
-      gsap.to('#social-heart-two', {
-        y: -7,
-        duration: 2.6,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        delay: 0.4,
-      });
+function Background() {
+  return (
+    <g>
+      <rect width="1100" height="480" fill="#FDF3E4" />
+      <rect y="300" width="1100" height="180" fill="#F4E1C6" />
+      <line x1="0" y1="300" x2="1100" y2="300" stroke="#E7CBA4" strokeWidth="6" />
+      {/* Ventana */}
+      <g transform="translate(140 70)">
+        <rect width="190" height="170" rx="10" fill="#FFFFFF" />
+        <rect x="10" y="10" width="170" height="150" rx="6" fill="#BFDBFE" />
+        <circle cx="140" cy="48" r="20" fill="#FDE68A" />
+        <path d="M 10 130 C 50 104, 90 120, 120 110 C 150 100, 170 112, 180 108 L 180 160 L 10 160 Z" fill="#A7C796" />
+        <line x1="95" y1="10" x2="95" y2="160" stroke="#FFFFFF" strokeWidth="6" />
+        <line x1="10" y1="85" x2="180" y2="85" stroke="#FFFFFF" strokeWidth="6" />
+      </g>
+      {/* Cuadro */}
+      <g transform="translate(800 80)">
+        <rect width="120" height="90" rx="6" fill="#FFFFFF" stroke="#E7CBA4" strokeWidth="5" />
+        <circle cx="42" cy="44" r="18" fill="#FDBA74" />
+        <circle cx="72" cy="52" r="22" fill="#93C5FD" opacity="0.85" />
+      </g>
+      {/* Lámpara colgante */}
+      <line x1="550" y1="0" x2="550" y2="54" stroke="#475569" strokeWidth="2" />
+      <path d="M 518 82 L 582 82 L 566 54 L 534 54 Z" fill="#334155" />
+      <ellipse cx="550" cy="84" rx="12" ry="5" fill="#FDE68A" />
+      {/* Planta */}
+      <g transform="translate(1000 300)">
+        <path d="M -24 0 L 24 0 L 18 46 L -18 46 Z" fill="#C2410C" />
+        <path d="M 0 0 C -30 -30, -40 -70, -20 -90 C -10 -60, 0 -30, 0 0 Z" fill="#65A30D" />
+        <path d="M 0 0 C 26 -26, 46 -60, 30 -88 C 16 -60, 6 -30, 0 0 Z" fill="#84CC16" />
+        <path d="M 0 0 C -6 -40, 0 -80, 8 -104 C 14 -70, 8 -36, 0 0 Z" fill="#4D7C0F" />
+      </g>
+    </g>
+  );
+}
 
-      gsap.to('#steam-a, #steam-b', {
-        y: -12,
-        opacity: 0.25,
-        duration: 1.9,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        stagger: 0.35,
-      });
+export function SocialContactScenario(_props: ScenarioProps) {
+  const rootRef = useSceneAnimation(() => {
+    // Se ríen e inclinan el uno hacia el otro
+    gsap.to('#friend-a', { rotation: 1.6, transformOrigin: '50% 100%', duration: 2.4, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.to('#friend-b', { rotation: -1.6, transformOrigin: '50% 100%', duration: 2.4, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 0.3 });
 
-      gsap.to('#social-a, #social-b', {
-        y: -2,
-        duration: 2.5,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        stagger: 0.4,
-      });
-    }, rootRef);
-
-    return () => context.revert();
-  }, []);
+    // Corazones que flotan entre los amigos
+    gsap.fromTo(
+      '.heart',
+      { opacity: 0, y: 0, scale: 0.6, transformOrigin: '50% 50%' },
+      { opacity: 1, y: -40, scale: 1, duration: 1.4, stagger: { each: 0.7, repeat: -1 }, ease: 'sine.out', yoyo: false },
+    );
+    gsap.to('.heart', { opacity: 0, duration: 0.5, delay: 1, stagger: { each: 0.7, repeat: -1, repeatDelay: 0.9 } });
+  });
 
   return (
-    <div ref={rootRef} className="flex h-full w-full items-center justify-center px-4 py-2">
-      <svg
-        viewBox="0 0 1200 600"
-        className="h-full w-full select-none"
-        role="img"
-        aria-label="Dos amigos sonrientes se abrazan junto a una mesa con tazas, cubiertos y fruta compartida."
-        preserveAspectRatio="xMidYMid meet"
+    <SceneRoot rootRef={rootRef}>
+      <Stage
+        label="Dos amigos comparten una mesa con un plato de comida y vasos de jugo, se ríen y brindan."
+        background={<Background />}
       >
-        <circle cx="600" cy="300" r="222" fill="#FFFBEB" />
-        <circle cx="380" cy="280" r="170" fill="#FFF1F2" />
-        <circle cx="820" cy="280" r="170" fill="#EFF6FF" />
-        <circle cx="176" cy="212" r="12" fill="#FCD34D" opacity="0.75" />
-        <circle cx="1034" cy="182" r="14" fill="#93C5FD" opacity="0.65" />
-        <circle cx="1064" cy="380" r="9" fill="#FDA4AF" opacity="0.7" />
-
-        <g id="social-b">
+        <g id="friend-a">
           <Person
-            x={706}
-            y={530}
-            scale={0.98}
+            x={320}
+            y={424}
+            scale={1.3}
+            shirtColor="#EA580C"
+            shirtShadow="#C2410C"
+            skinColor="#F2C19E"
+            skinShadow="#D09772"
+            hairColor="#1E293B"
+            hairStyle="bun"
+            expression="happy"
+            arms={['table', 'hold']}
+            held={<Glass x={46} y={-58} juice="#A855F7" />}
+          />
+        </g>
+
+        <g id="friend-b">
+          <Person
+            x={780}
+            y={424}
+            scale={1.3}
             flip
-            skin="#8C5A3C"
-            hair="#111827"
-            shirt="#10B981"
-            lower="#1E293B"
-            hairStyle="curly"
-            look="left"
-            expression="grin"
-          />
-        </g>
-        <g id="social-a">
-          <Person
-            x={494}
-            y={530}
-            scale={0.98}
-            skin="#E8B48C"
-            hair="#78350F"
-            shirt="#F59E0B"
-            lower="#334155"
+            shirtColor="#2563EB"
+            shirtShadow="#1D4ED8"
+            skinColor="#6F4229"
+            skinShadow="#54301B"
+            hairColor="#0F172A"
             hairStyle="bob"
-            look="right"
-            expression="grin"
+            expression="happy"
+            arms={['table', 'hold']}
+            held={<Glass x={46} y={-58} juice="#FACC15" />}
+            blinkDelay={2.1}
           />
         </g>
 
-        <g id="social-heart">
-          <path
-            d="M 0 12 C -20 -2 -18 -20 -6 -20 C 0 -20 4 -15 6 -11 C 9 -16 14 -20 20 -19 C 33 -17 33 0 12 14 Z"
-            transform="translate(600 96)"
-            fill="#FB7185"
-          />
-        </g>
-        <g id="social-heart-two">
-          <path
-            d="M 0 8 C -13 -1 -12 -13 -4 -13 C 0 -13 3 -10 4 -7 C 6 -10 9 -13 13 -12 C 21 -11 21 0 8 9 Z"
-            transform="translate(660 58) scale(0.8)"
-            fill="#F97316"
-          />
+        <Table top={356} cloth={{ color: '#F8FAFC', shadow: '#E2E8F0' }} surface="#FFFFFF" />
+        {/* Cuadros del mantel */}
+        <g opacity="0.18" fill="#EF4444">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <rect key={i} x={190 + i * 84} y={396} width={42} height={84} />
+          ))}
         </g>
 
-        <ellipse cx="600" cy="540" rx="310" ry="24" fill="#F1F5F9" />
+        <Plate />
+        <Cutlery x={455} y={386} />
+        <Glass x={410} y={380} juice="#FB923C" />
+        <Cutlery x={612} y={386} />
 
-        <g transform="translate(0 -70)">
-          <g>
-          <rect x="322" y="488" width="556" height="26" rx="13" fill="#FEF3C7" stroke="#1E293B" strokeWidth="2.6" />
-          <rect x="322" y="507" width="556" height="13" rx="6.5" fill="#FCD34D" stroke="#1E293B" strokeWidth="2.6" />
-          <rect x="366" y="520" width="18" height="44" rx="8" fill="#F59E0B" stroke="#1E293B" strokeWidth="2.4" />
-          <rect x="816" y="520" width="18" height="44" rx="8" fill="#F59E0B" stroke="#1E293B" strokeWidth="2.4" />
-        </g>
-
-        <g>
-          <rect x="432" y="442" width="48" height="47" rx="13" fill="#FB7185" stroke="#1E293B" strokeWidth="2.5" />
-          <path d="M 480 454 C 496 454 496 476 480 476" fill="none" stroke="#1E293B" strokeWidth="2.5" />
-          <path d="M 448 451 C 454 460 458 460 464 451" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeOpacity="0.7" />
-        </g>
-        <g>
-          <rect x="720" y="442" width="48" height="47" rx="13" fill="#2563EB" stroke="#1E293B" strokeWidth="2.5" />
-          <path d="M 720 454 C 704 454 704 476 720 476" fill="none" stroke="#1E293B" strokeWidth="2.5" />
-          <path d="M 736 451 C 742 460 746 460 752 451" fill="none" stroke="#FFFFFF" strokeWidth="2" strokeOpacity="0.7" />
-        </g>
-
-        <path
-          id="steam-a"
-          d="M 456 432 C 446 416 466 405 456 388"
-          fill="none"
-          stroke="#CBD5E1"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-        />
-        <path
-          id="steam-b"
-          d="M 744 432 C 734 416 754 405 744 388"
-          fill="none"
-          stroke="#CBD5E1"
-          strokeWidth="3.2"
-          strokeLinecap="round"
-        />
-
-        <g>
-          <ellipse cx="600" cy="476" rx="58" ry="14" fill="#F8FAFC" stroke="#1E293B" strokeWidth="2.4" />
-          <circle cx="578" cy="464" r="13" fill="#F97316" stroke="#1E293B" strokeWidth="2" />
-          <circle cx="600" cy="459" r="14" fill="#EF4444" stroke="#1E293B" strokeWidth="2" />
-          <circle cx="622" cy="464" r="12" fill="#84CC16" stroke="#1E293B" strokeWidth="2" />
-          <path d="M 600 445 C 604 438 612 437 616 440 C 609 446 604 447 600 445 Z" fill="#16A34A" stroke="#1E293B" strokeWidth="1.6" />
-        </g>
-
-        </g>
-      </svg>
-    </div>
+        <Heart x={530} y={210} className="heart" />
+        <Heart x={565} y={235} size={0.8} className="heart" />
+        <Heart x={548} y={190} size={0.6} className="heart" />
+      </Stage>
+    </SceneRoot>
   );
 }

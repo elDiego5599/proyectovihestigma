@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { SCENARIOS, type Answer } from '../data/scenarios';
 import { MosquitoScenario } from './scenarios/MosquitoScenario';
 import { SocialContactScenario } from './scenarios/SocialContactScenario';
@@ -18,12 +19,11 @@ const SCENE_ART = [
 
 function ArrowIcon() {
   return (
-    <svg width="19" height="19" viewBox="0 0 20 20" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
       <path
-        d="M3 10H16M11 5L16 10L11 15"
-        fill="none"
+        d="M4 10H16M11 5L16 10L11 15"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -33,12 +33,11 @@ function ArrowIcon() {
 
 function RestartIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true">
       <path
         d="M13.2 6.4A5.7 5.7 0 1 0 13 10.5M13.2 2.6V6.7H9.1"
-        fill="none"
         stroke="currentColor"
-        strokeWidth="1.6"
+        strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -46,216 +45,277 @@ function RestartIcon() {
   );
 }
 
-function CheckMark() {
+function CheckIcon() {
   return (
-    <span className="pop-in flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-emerald">
-      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
-        <path
-          className="check-path"
-          d="M7 15.5L12.5 21L23 9.5"
-          fill="none"
-          stroke="#FFFFFF"
-          strokeWidth="3.4"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    </span>
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M5 12.5L9.5 17L19 7.5"
+        stroke="#FFFFFF"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
-function CrossMark() {
+function CrossIcon() {
   return (
-    <span className="pop-in flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-coral-soft">
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
-        <path
-          d="M8 8L20 20M20 8L8 20"
-          fill="none"
-          stroke="#F43F5E"
-          strokeWidth="3.4"
-          strokeLinecap="round"
-        />
-      </svg>
-    </span>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M6 6L18 18M18 6L6 18"
+        stroke="#EF4444"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 
 export function SimulationScreen() {
   const [index, setIndex] = useState(0);
   const [answer, setAnswer] = useState<Answer | null>(null);
+  const [results, setResults] = useState<boolean[]>([]);
+  const [finished, setFinished] = useState(false);
 
   const meta = SCENARIOS[index];
   const SceneArt = SCENE_ART[index];
   const isLast = index === SCENARIOS.length - 1;
-  const status = answer === null ? 'question' : answer === meta.answer ? 'correct' : 'wrong';
+  const isResolved = answer !== null;
+  const isCorrect = isResolved && answer === meta.answer;
 
   const handleAnswer = (choice: Answer) => {
     if (answer) return;
     setAnswer(choice);
+    setResults((prev) => {
+      const next = [...prev];
+      next[index] = choice === meta.answer;
+      return next;
+    });
   };
 
   const handleNext = () => {
     setAnswer(null);
-    setIndex((current) => (current + 1) % SCENARIOS.length);
+    if (isLast) {
+      setFinished(true);
+      return;
+    }
+    setIndex((current) => current + 1);
   };
 
   const handleRestart = () => {
     setAnswer(null);
+    setResults([]);
+    setFinished(false);
     setIndex(0);
   };
 
-  return (
-    <div className="flex h-screen w-screen flex-col overflow-hidden bg-white">
-      <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-line px-5 sm:px-8">
-        <div className="flex min-w-0 items-center gap-3.5">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-coral text-[18px] font-extrabold leading-none text-white">
-            ?
-          </span>
-          <h1 className="truncate text-[16px] font-extrabold tracking-[-0.02em] text-ink">
-            Mito o Realidad
-          </h1>
-          <span aria-hidden="true" className="hidden h-4 w-px bg-line md:block" />
-          <p className="hidden truncate text-[13px] font-medium text-soft md:block">
-            VIH: transmisión y prevención
-          </p>
-        </div>
+  // Atajos de teclado: M = mito, R = realidad, Enter = continuar
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const key = e.key.toLowerCase();
+      if (finished) {
+        if (key === 'enter') handleRestart();
+        return;
+      }
+      if (!answer && key === 'm') handleAnswer('mito');
+      else if (!answer && key === 'r') handleAnswer('realidad');
+      else if (answer && key === 'enter') {
+        e.preventDefault();
+        handleNext();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
-        <div className="flex shrink-0 items-center gap-4">
-          <div className="hidden items-center gap-1.5 sm:flex" aria-hidden="true">
+  const score = results.filter(Boolean).length;
+
+  return (
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[#F0F4F8] text-[#0F172A]">
+      {/* Header editorial con Mito o Realidad en alto contraste y presencia real */}
+      <header className="relative flex h-16 shrink-0 items-center justify-between border-b border-[rgba(15,23,42,0.08)] bg-white px-6 sm:px-12 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
+        {/* Lado izquierdo: indicador de pasos */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5" aria-hidden="true">
             {SCENARIOS.map((scenario, dotIndex) => (
               <span
                 key={scenario.id}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  dotIndex === index
-                    ? 'w-7 bg-coral'
-                    : dotIndex < index
-                      ? 'w-7 bg-emerald'
-                      : 'w-7 bg-line'
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  dotIndex === index && !finished
+                    ? `w-7 ${results[dotIndex] === undefined ? 'bg-[#2563EB]' : results[dotIndex] ? 'bg-[#10B981]' : 'bg-[#F43F5E]'}`
+                    : results[dotIndex] === true
+                      ? 'w-3.5 bg-[#10B981]'
+                      : results[dotIndex] === false
+                        ? 'w-3.5 bg-[#F43F5E]'
+                        : 'w-3.5 bg-[#CBD5E1]'
                 }`}
               />
             ))}
           </div>
-          <p className="whitespace-nowrap text-[13px] font-semibold text-body">
-            Escenario <span className="tabular-nums">{index + 1}</span> de 6
-          </p>
-          <span aria-hidden="true" className="h-4 w-px bg-line" />
-          <button
+          <span className="text-[13px] font-bold tracking-tight text-[#475569]">
+            {index + 1} / {SCENARIOS.length}
+          </span>
+        </div>
+
+        {/* Centro absoluto: Título nítido, prominente y con autoridad visual */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+          <h1 className="text-[20px] font-black tracking-[-0.035em] text-[#0F172A] sm:text-[22px]">
+            Mito o Realidad
+          </h1>
+        </div>
+
+        {/* Lado derecho: botón reiniciar */}
+        <div className="flex items-center">
+          <motion.button
             type="button"
             onClick={handleRestart}
-            className="flex h-9 items-center gap-2 rounded-xl border border-line px-3 text-[12.5px] font-semibold text-body transition-colors hover:border-ink hover:text-ink"
+            whileTap={{ scale: 0.94 }}
+            transition={{ type: 'spring', duration: 0.22, bounce: 0 }}
+            className="flex h-9 items-center gap-2 rounded-xl border border-[rgba(15,23,42,0.14)] bg-white px-3.5 text-[12.5px] font-bold text-[#334155] shadow-xs transition-colors hover:border-[#0F172A] hover:text-[#0F172A]"
           >
             <RestartIcon />
             Reiniciar
-          </button>
+          </motion.button>
         </div>
       </header>
 
-      <main className="relative min-h-0 flex-1 overflow-hidden bg-[#FCFDFE]">
-        <div key={meta.id} className="soft-fade h-full w-full">
-          <SceneArt />
+      {finished ? (
+        <main className="flex min-h-0 flex-1 items-center justify-center px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ type: 'spring', duration: 0.45, bounce: 0 }}
+            className="w-full max-w-[520px] rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white p-10 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
+          >
+            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#64748B]">Tu resultado</p>
+            <p className="mt-3 text-[64px] font-black leading-none tracking-[-0.04em] text-[#0F172A]">
+              {score}
+              <span className="text-[#94A3B8]">/{SCENARIOS.length}</span>
+            </p>
+            <p className="mx-auto mt-4 max-w-[380px] text-pretty text-[16px] font-medium leading-[1.45] text-[#334155]">
+              {score === SCENARIOS.length
+                ? 'Perfecto. Conoces bien cómo se transmite y cómo no se transmite el VIH.'
+                : score >= SCENARIOS.length / 2
+                  ? 'Muy bien. Repasa las que fallaste: la información correcta frena el estigma.'
+                  : 'Buen comienzo. Vuelve a intentarlo: entender el VIH ayuda a cuidarte y a no discriminar.'}
+            </p>
+            <div className="mt-6 flex justify-center gap-2">
+              {results.map((ok, i) => (
+                <span key={i} className={`h-2.5 w-8 rounded-full ${ok ? 'bg-[#10B981]' : 'bg-[#F43F5E]'}`} />
+              ))}
+            </div>
+            <motion.button
+              type="button"
+              onClick={handleRestart}
+              whileTap={{ scale: 0.95 }}
+              transition={{ type: 'spring', duration: 0.2, bounce: 0 }}
+              className="mx-auto mt-8 flex h-[54px] items-center justify-center gap-2.5 rounded-xl bg-[#0F172A] px-8 text-[15px] font-bold text-white hover:bg-[#1E293B]"
+            >
+              <RestartIcon />
+              Jugar de nuevo
+            </motion.button>
+          </motion.div>
+        </main>
+      ) : (
+      <main className="relative flex min-h-0 flex-1 flex-col items-center justify-between overflow-hidden px-4 py-4 sm:px-10">
+        {/* Contenedor visual del escenario con iluminación limpia */}
+        <div className="relative flex h-full max-h-[64vh] w-full max-w-[1240px] flex-1 items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={meta.id}
+              initial={{ opacity: 0, scale: 0.985 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 1.01 }}
+              transition={{ type: 'spring', duration: 0.35, bounce: 0 }}
+              className="h-full w-full"
+            >
+              <SceneArt isResolved={isResolved} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* Tarjeta de interacción: misma altura en pregunta, acierto y error */}
+        <div className="w-full max-w-[1100px] shrink-0 pt-3">
+          <div className="relative grid min-h-[168px] overflow-hidden rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white px-6 py-5 sm:px-8 shadow-[0_4px_20px_rgba(15,23,42,0.06)]">
+            {/* Ambos estados ocupan la misma celda: la tarjeta mide siempre lo del más alto */}
+                <motion.div
+                  aria-hidden={isResolved}
+                  initial={false}
+                  animate={{ opacity: isResolved ? 0 : 1, y: isResolved ? -6 : 0 }}
+                  transition={{ type: 'spring', duration: 0.28, bounce: 0 }}
+                  className={`col-start-1 row-start-1 flex flex-col justify-between gap-4 ${isResolved ? 'pointer-events-none' : ''}`}
+                >
+                  <h2 className="min-w-0 text-pretty text-[18px] font-extrabold leading-[1.3] tracking-[-0.02em] text-[#0F172A] sm:text-[21px]">
+                    {meta.statement}
+                  </h2>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(['mito', 'realidad'] as const).map((choice) => (
+                      <motion.button
+                        key={choice}
+                        type="button"
+                        onClick={() => handleAnswer(choice)}
+                        tabIndex={isResolved ? -1 : 0}
+                        whileTap={{ scale: 0.95 }}
+                        transition={{ type: 'spring', duration: 0.18, bounce: 0 }}
+                        className="flex h-[54px] w-full items-center justify-center gap-2 rounded-2xl border-2 border-[#E2E8F0] bg-[#F8FAFC] text-[15px] font-black uppercase tracking-[0.04em] text-[#0F172A] transition-colors hover:border-[#94A3B8] hover:bg-white"
+                      >
+                        {choice}
+                        <kbd className="rounded-md border border-[#CBD5E1] bg-white px-1.5 py-0.5 text-[11px] font-bold text-[#64748B]">
+                          {choice === 'mito' ? 'M' : 'R'}
+                        </kbd>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
+                <motion.div
+                  aria-hidden={!isResolved}
+                  initial={false}
+                  animate={{ opacity: isResolved ? 1 : 0, y: isResolved ? 0 : 6 }}
+                  transition={{ type: 'spring', duration: 0.28, bounce: 0 }}
+                  className={`col-start-1 row-start-1 flex flex-col justify-between gap-4 ${isResolved ? '' : 'pointer-events-none'}`}
+                >
+                  <div className="flex min-w-0 items-start gap-4">
+                    <span
+                      className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
+                        isCorrect ? 'bg-[#10B981]' : 'border-2 border-[rgba(239,68,68,0.2)] bg-[#FEF2F2]'
+                      }`}
+                    >
+                      {isCorrect ? <CheckIcon /> : <CrossIcon />}
+                    </span>
+                    <div className="min-w-0">
+                      <h2
+                        className={`text-[18px] font-extrabold leading-tight tracking-[-0.02em] ${
+                          isCorrect ? 'text-[#065F46]' : 'text-[#991B1B]'
+                        }`}
+                      >
+                        {isCorrect ? '¡Correcto! ' : 'Incorrecto: '}
+                        <span className="text-[#0F172A]">
+                          {meta.answer === 'mito' ? 'es un mito.' : 'es realidad.'}
+                        </span>
+                      </h2>
+                      <p className="mt-1 text-pretty text-[14.5px] font-medium leading-[1.45] text-[#334155]">
+                        {meta.feedback}
+                      </p>
+                    </div>
+                  </div>
+                  <motion.button
+                    type="button"
+                    onClick={handleNext}
+                    tabIndex={isResolved ? 0 : -1}
+                    whileTap={{ scale: 0.95 }}
+                    transition={{ type: 'spring', duration: 0.2, bounce: 0 }}
+                    className="flex h-[54px] w-full shrink-0 items-center justify-center gap-2.5 rounded-2xl bg-[#0F172A] px-6 text-[15px] font-bold tracking-tight text-white hover:bg-[#1E293B]"
+                  >
+                    {isLast ? 'Ver resultado' : 'Siguiente'}
+                    <ArrowIcon />
+                  </motion.button>
+                </motion.div>
+          </div>
         </div>
       </main>
-
-      <section
-        aria-live="polite"
-        className={`flex h-[30vh] min-h-[248px] max-h-[310px] shrink-0 border-t-2 px-5 transition-colors duration-300 sm:px-8 ${
-          status === 'correct'
-            ? 'border-emerald bg-emerald-soft'
-            : status === 'wrong'
-              ? 'border-coral bg-coral-soft'
-              : 'border-line bg-white'
-        }`}
-      >
-        <div className="mx-auto flex h-full w-full max-w-[1280px] items-center">
-          {status === 'question' ? (
-            <div className="flex w-full flex-col justify-center gap-6 lg:flex-row lg:items-center lg:justify-between lg:gap-10">
-              <div className="min-w-0 flex-1">
-                <div className="mb-2.5 flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-coral" />
-                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-coral">
-                    Mito o realidad
-                  </p>
-                </div>
-                <h2 className="max-w-[840px] text-pretty text-[clamp(1.2rem,1.7vw,1.55rem)] font-bold leading-[1.28] tracking-[-0.02em] text-ink">
-                  {meta.statement}
-                </h2>
-              </div>
-
-              <div className="flex shrink-0 gap-3">
-                <button
-                  type="button"
-                  onClick={() => handleAnswer('mito')}
-                  className="h-[66px] w-[164px] rounded-2xl border-2 border-coral bg-white text-[17px] font-extrabold tracking-[0.02em] text-coral transition-colors hover:bg-coral-soft active:translate-y-px"
-                >
-                  MITO
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleAnswer('realidad')}
-                  className="h-[66px] w-[164px] rounded-2xl border-2 border-cobalt bg-white text-[17px] font-extrabold tracking-[0.02em] text-cobalt transition-colors hover:bg-[#EFF6FF] active:translate-y-px"
-                >
-                  REALIDAD
-                </button>
-              </div>
-            </div>
-          ) : status === 'correct' ? (
-            <div className="panel-in flex w-full items-center justify-between gap-6">
-              <div className="flex min-w-0 items-center gap-5">
-                <CheckMark />
-                <div className="min-w-0">
-                  <h2 className="text-[clamp(1.5rem,2.2vw,2rem)] font-extrabold leading-none tracking-[-0.03em] text-emerald">
-                    Acertaste
-                  </h2>
-                  <p className="mt-2 text-[14px] font-medium text-body">
-                    La respuesta era{' '}
-                    <span className="font-bold uppercase text-ink">
-                      {meta.answer === 'mito' ? 'mito' : 'realidad'}
-                    </span>
-                    .
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleNext}
-                className="flex h-[58px] shrink-0 items-center gap-3 rounded-2xl bg-emerald px-6 text-[15px] font-bold text-white transition-colors hover:bg-[#0EA271] active:translate-y-px"
-              >
-                {isLast ? 'Volver al inicio' : 'Siguiente escenario'}
-                <ArrowIcon />
-              </button>
-            </div>
-          ) : (
-            <div className="panel-in flex w-full items-center justify-between gap-6">
-              <div className="flex min-w-0 items-start gap-5">
-                <CrossMark />
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h2 className="text-[clamp(1.3rem,1.9vw,1.7rem)] font-extrabold leading-none tracking-[-0.03em] text-coral">
-                      Incorrecto
-                    </h2>
-                    <span className="rounded-full border border-coral/30 bg-white px-3 py-1 text-[12px] font-bold uppercase tracking-[0.06em] text-coral">
-                      La respuesta es {meta.answer}
-                    </span>
-                  </div>
-                  <p className="mt-2.5 max-w-[820px] text-pretty text-[14.5px] leading-[1.45] text-body">
-                    {meta.feedback}
-                  </p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleNext}
-                className="flex h-[58px] shrink-0 items-center gap-3 rounded-2xl bg-ink px-6 text-[15px] font-bold text-white transition-colors hover:bg-[#1E293B] active:translate-y-px"
-              >
-                {isLast ? 'Volver al inicio' : 'Siguiente escenario'}
-                <ArrowIcon />
-              </button>
-            </div>
-          )}
-        </div>
-      </section>
+      )}
     </div>
   );
 }

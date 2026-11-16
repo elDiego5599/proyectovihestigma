@@ -1,179 +1,222 @@
-import { useEffect, useRef } from 'react';
 import { gsap } from '../../lib/gsap';
 import { Person } from '../art/Person';
+import { Stage, SceneRoot, useSceneAnimation } from '../art/Stage';
 
-export function SexualRiskScenario() {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+interface ScenarioProps {
+  isResolved?: boolean;
+}
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+const SCALE = 1.18;
+const BASE_Y = 448;
+// Con el brazo en 'reach' (H = [160, -70]) las manos se encuentran justo en el centro.
+const A_X = 362;
+const B_X = 738;
 
-    const context = gsap.context(() => {
-      gsap.set('#couple-a-motion', {
-        rotation: 4,
-        transformOrigin: '50% 100%',
-      });
-      gsap.set('#couple-b-motion', {
-        rotation: -4,
-        transformOrigin: '50% 100%',
-      });
-      gsap.set('#condom-slash-group', { opacity: 0 });
-      gsap.set('#condom-slash', { strokeDasharray: 220, strokeDashoffset: 220 });
+function CondomPacket() {
+  return (
+    <g transform="translate(550 250)">
+    <g id="packet">
+      <g id="packet-body">
+        {/* Escudo de protección detrás */}
+        <circle className="shield-ring" r="58" fill="none" stroke="#10B981" strokeWidth="3" opacity="0" />
+        <circle className="shield-ring" r="58" fill="none" stroke="#34D399" strokeWidth="3" opacity="0" />
+        {/* Sobre con borde dentado */}
+        <path
+          d="M -38 -38 L -30 -42 L -22 -38 L -14 -42 L -6 -38 L 2 -42 L 10 -38 L 18 -42 L 26 -38 L 34 -42 L 42 -38 L 38 -30 L 42 -22 L 38 -14 L 42 -6 L 38 2 L 42 10 L 38 18 L 42 26 L 38 34 L 42 42 L 34 38 L 26 42 L 18 38 L 10 42 L 2 38 L -6 42 L -14 38 L -22 42 L -30 38 L -38 42 L -34 34 L -38 26 L -34 18 L -38 10 L -34 2 L -38 -6 L -34 -14 L -38 -22 L -34 -30 Z"
+          fill="#2563EB"
+        />
+        <rect x="-28" y="-28" width="56" height="56" rx="8" fill="#3B82F6" />
+        <circle r="17" fill="none" stroke="#BFDBFE" strokeWidth="5" />
+        <circle r="8" fill="#60A5FA" />
+        <path d="M -20 -22 L 4 -22" stroke="#FFFFFF" strokeOpacity="0.5" strokeWidth="3" strokeLinecap="round" />
+      </g>
+    </g>
+    </g>
+  );
+}
 
-      gsap.to('#couple-a-motion', {
-        rotation: 1.5,
-        y: -2,
-        duration: 2.4,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-      });
-      gsap.to('#couple-b-motion', {
-        rotation: -1.5,
-        y: -2,
-        duration: 2.4,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-      });
-      gsap.to('#condom-icon', {
-        y: -5,
-        duration: 2,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-      });
-      gsap.to('.risk-dot', {
-        scale: 1.16,
-        duration: 0.85,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        stagger: 0.22,
-        transformOrigin: 'center center',
-      });
-      gsap.to('#amber-burst', {
-        scale: 1.1,
-        opacity: 0.75,
-        duration: 1.4,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        transformOrigin: 'center center',
-      });
+/** Partícula de virus estilizada, centrada en (0,0). */
+function Virus({ className }: { className: string }) {
+  return (
+    <g className={className} opacity="0">
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+        <g key={a} transform={`rotate(${a})`}>
+          <line x1="0" y1="-9" x2="0" y2="-14" stroke="#E11D48" strokeWidth="2.4" strokeLinecap="round" />
+          <circle cy="-15" r="2.4" fill="#E11D48" />
+        </g>
+      ))}
+      <circle r="10" fill="#F43F5E" />
+      <circle r="4" cx="-3" cy="-3" fill="#FDA4AF" />
+    </g>
+  );
+}
 
-      const slash = gsap.timeline({ repeat: -1, repeatDelay: 3.2 });
-      slash
-        .to('#condom-slash-group', { opacity: 1, duration: 0.25 }, 0.4)
-        .to('#condom-slash', { strokeDashoffset: 0, duration: 0.75, ease: 'power2.inOut' }, 0.5)
-        .set('#condom-slash', { strokeDashoffset: 220 }, 4.6);
-    }, rootRef);
+function Heart({ x, y, s = 1 }: { x: number; y: number; s?: number }) {
+  return (
+    <g transform={`translate(${x} ${y}) scale(${s})`}>
+      <path
+        className="love-heart"
+        d="M 0 10 C -22 -6, -18 -26, -6 -26 C -2 -26, 0 -22, 0 -20 C 0 -22, 2 -26, 6 -26 C 18 -26, 22 -6, 0 10 Z"
+        fill="#F43F5E"
+      />
+    </g>
+  );
+}
 
-    return () => context.revert();
-  }, []);
+function Background() {
+  return (
+    <g>
+      <defs>
+        <linearGradient id="sex-wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#EDE9FE" />
+          <stop offset="1" stopColor="#F5EEFF" />
+        </linearGradient>
+      </defs>
+      <rect width="1100" height="480" fill="url(#sex-wall)" />
+      {/* Ventana con cortinas y noche */}
+      <g transform="translate(70 60)">
+        <rect x="10" y="10" width="140" height="150" rx="8" fill="#312E81" />
+        <circle cx="110" cy="56" r="15" fill="#FDE68A" />
+        <circle cx="103" cy="51" r="15" fill="#312E81" />
+        {[[40, 50], [60, 110], [120, 130], [34, 140]].map(([x, y]) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r="1.8" fill="#E0E7FF" />
+        ))}
+        <rect x="0" y="0" width="160" height="10" rx="4" fill="#A78BFA" />
+        <path d="M 4 10 C 24 60, 14 120, 30 168 L 4 168 Z" fill="#C4B5FD" />
+        <path d="M 156 10 C 136 60, 146 120, 130 168 L 156 168 Z" fill="#C4B5FD" />
+      </g>
+      {/* Guirnalda de luces sobre la cabecera */}
+      <path d="M 300 40 C 440 90, 660 90, 800 40" fill="none" stroke="#A78BFA" strokeWidth="2" />
+      {[0.1, 0.25, 0.4, 0.55, 0.7, 0.85].map((t) => {
+        const x = 300 + 500 * t;
+        const y = 40 + 4 * 50 * t * (1 - t);
+        return <circle key={t} className="fairy" cx={x} cy={y + 6} r="5" fill="#FDE68A" />;
+      })}
+      {/* Mesita de noche con lámpara */}
+      <g transform="translate(965 300)">
+        <rect x="-60" y="0" width="120" height="110" rx="10" fill="#C4B5FD" />
+        <rect x="-50" y="18" width="100" height="36" rx="6" fill="#DDD6FE" />
+        <circle cx="0" cy="36" r="4" fill="#7C3AED" />
+        <rect x="-4" y="-50" width="8" height="50" fill="#7C3AED" />
+        <ellipse cx="0" cy="-2" rx="22" ry="5" fill="#7C3AED" />
+        <path d="M -30 -50 L 30 -50 L 20 -92 L -20 -92 Z" fill="#FDE68A" />
+        <ellipse cx="0" cy="-120" rx="80" ry="70" fill="#FEF3C7" opacity="0.35" />
+      </g>
+      {/* Cama: cabecera, almohadas y colcha */}
+      <g>
+        <rect x="250" y="150" width="600" height="190" rx="36" fill="#8B5CF6" />
+        <rect x="266" y="166" width="568" height="160" rx="26" fill="#A78BFA" />
+        {[330, 430, 530, 630, 730].map((x) => (
+          <line key={x} x1={x + 20} y1="180" x2={x + 20} y2="312" stroke="#8B5CF6" strokeWidth="3" opacity="0.5" />
+        ))}
+        <rect x="290" y="250" width="230" height="70" rx="30" fill="#FFFFFF" />
+        <rect x="580" y="250" width="230" height="70" rx="30" fill="#FFFFFF" />
+        <path d="M 310 270 Q 400 258 500 270" stroke="#E9D5FF" strokeWidth="3" fill="none" />
+        <path d="M 600 270 Q 690 258 790 270" stroke="#E9D5FF" strokeWidth="3" fill="none" />
+        <rect x="220" y="310" width="660" height="180" rx="24" fill="#F9A8D4" />
+        <rect x="220" y="310" width="660" height="34" rx="16" fill="#FBCFE8" />
+        <path d="M 260 380 Q 550 360 840 380" stroke="#F472B6" strokeWidth="3" fill="none" opacity="0.6" />
+      </g>
+    </g>
+  );
+}
+
+export function SexualRiskScenario(_props: ScenarioProps) {
+  const rootRef = useSceneAnimation(() => {
+    gsap.to('#couple-a', { rotation: 1.2, svgOrigin: `${A_X} ${BASE_Y}`, duration: 2.6, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.to('#couple-b', { rotation: -1.2, svgOrigin: `${B_X} ${BASE_Y}`, duration: 2.6, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+
+    gsap.to('.love-heart', {
+      scale: 1.12,
+      transformOrigin: '50% 60%',
+      duration: 0.45,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      stagger: 0.2,
+    });
+
+    gsap.to('.fairy', { opacity: 0.4, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 0.25 });
+
+    gsap.to('#packet-body', { y: -6, rotation: 5, transformOrigin: '50% 50%', duration: 1.6, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.fromTo(
+      '.shield-ring',
+      { scale: 0.7, opacity: 0.9, transformOrigin: '50% 50%' },
+      { scale: 1.5, opacity: 0, duration: 1.8, repeat: -1, ease: 'power1.out', stagger: 0.9 },
+    );
+
+    // Sin preservativo el virus pasa de una persona a otra; con preservativo, el escudo lo detiene.
+    const START = { x: 420, y: 250 };
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.4 });
+    tl.set('#packet', { scale: 0, opacity: 0, transformOrigin: '50% 50%' })
+      .set('.virus-a, .virus-b', { x: START.x, y: START.y, opacity: 0, scale: 1, transformOrigin: '50% 50%' })
+      .set('.hit-ring', { opacity: 0, scale: 0.5, transformOrigin: '50% 50%' });
+
+    // 1. Sin protección: llega a la otra persona
+    tl.to('.virus-a', { opacity: 1, duration: 0.25, stagger: 0.35 }, 0.3)
+      .to('.virus-a', { x: 690, y: 262, duration: 1.4, ease: 'sine.inOut', stagger: 0.35 }, 0.3)
+      .to('.virus-a', { opacity: 0, scale: 0.5, duration: 0.25, stagger: 0.35 }, 1.6)
+      .to('.hit-ring', { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' }, 1.7)
+      .to('.hit-ring', { opacity: 0, scale: 1.7, duration: 0.7, ease: 'power1.in' }, 2.4)
+
+      // 2. Aparece el preservativo y bloquea el paso
+      .to('#packet', { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(2)' }, 3.3)
+      .to('.virus-b', { opacity: 1, duration: 0.25, stagger: 0.35 }, 4.1)
+      .to('.virus-b', { x: 492, y: 250, duration: 0.8, ease: 'power1.in', stagger: 0.35 }, 4.1)
+      .to('.virus-b', { x: 470, scale: 0.2, opacity: 0, duration: 0.35, ease: 'power2.out', stagger: 0.35 }, 4.9)
+      .to('#packet', { scale: 0, opacity: 0, duration: 0.4, ease: 'power2.in' }, 7);
+  });
 
   return (
-    <div ref={rootRef} className="flex h-full w-full items-center justify-center px-4 py-2">
-      <svg
-        viewBox="0 0 1200 600"
-        className="h-full w-full select-none"
-        role="img"
-        aria-label="Una pareja abrazada junto a un preservativo tachado y partículas de riesgo, con una señal ámbar de otra infección de transmisión sexual."
-        preserveAspectRatio="xMidYMid meet"
+    <SceneRoot rootRef={rootRef}>
+      <Stage
+        label="Una pareja se toma de las manos. Sin preservativo, partículas de virus pasan de una persona a la otra; cuando aparece el preservativo, su escudo las detiene."
+        background={<Background />}
       >
-        <circle cx="600" cy="300" r="230" fill="#FFF1F2" />
-        <circle cx="410" cy="280" r="175" fill="#EFF6FF" />
-        <circle cx="800" cy="290" r="170" fill="#FFFBEB" />
-        <circle cx="170" cy="188" r="13" fill="#FDA4AF" opacity="0.6" />
-        <circle cx="1040" cy="204" r="14" fill="#FCD34D" opacity="0.6" />
-
-        <g id="couple-b-motion">
+        <g id="couple-a">
           <Person
-            x={742}
-            y={530}
-            scale={1}
+            x={A_X}
+            y={BASE_Y}
+            scale={SCALE}
+            shirtColor="#E11D48"
+            shirtShadow="#9F1239"
+            skinColor="#F2C19E"
+            skinShadow="#D09772"
+            hairColor="#422006"
+            hairStyle="wavy"
+            expression="happy"
+            arms={['down', 'reach']}
+          />
+        </g>
+        <g id="couple-b">
+          <Person
+            x={B_X}
+            y={BASE_Y}
+            scale={SCALE}
             flip
-            skin="#F2C9A4"
-            hair="#B45309"
-            shirt="#F59E0B"
-            lower="#1E293B"
-            hairStyle="bob"
-            look="left"
-            expression="smile"
-          />
-        </g>
-        <g id="couple-a-motion">
-          <Person
-            x={458}
-            y={530}
-            scale={1}
-            skin="#8C5A3C"
-            hair="#111827"
-            shirt="#2563EB"
-            lower="#334155"
-            hairStyle="long"
-            look="right"
-            expression="smile"
+            shirtColor="#4F46E5"
+            shirtShadow="#3730A3"
+            skinColor="#8D5524"
+            skinShadow="#6B3E18"
+            hairColor="#0F172A"
+            hairStyle="short"
+            expression="happy"
+            arms={['down', 'reach']}
+            blinkDelay={2.3}
           />
         </g>
 
-        <ellipse cx="600" cy="536" rx="270" ry="20" fill="#F1F5F9" />
+        <Heart x={550} y={84} />
+        <Heart x={500} y={112} s={0.55} />
+        <Heart x={604} y={106} s={0.65} />
 
-        <g transform="translate(600 398) scale(0.8)">
-          <g id="condom-icon">
-            <ellipse cx="0" cy="82" rx="66" ry="12" fill="#0F172A" opacity="0.06" />
-            <path
-              d="M -34 -38 C -34 -76 34 -76 34 -38 L 34 30 C 34 48 18 58 0 58 C -18 58 -34 48 -34 30 Z"
-              fill="#DBEAFE"
-              stroke="#1E293B"
-              strokeWidth="3"
-              strokeLinejoin="round"
-            />
-            <circle cx="0" cy="-70" r="10" fill="#BFDBFE" stroke="#1E293B" strokeWidth="3" />
-            <path d="M -18 -30 C -12 -46 10 -50 20 -40" fill="none" stroke="#FFFFFF" strokeWidth="4" strokeOpacity="0.8" strokeLinecap="round" />
-            <rect x="-47" y="38" width="94" height="27" rx="13.5" fill="#60A5FA" stroke="#1E293B" strokeWidth="3" />
-            <path d="M -30 45 H 30 M -24 57 H 24" stroke="#1D4ED8" strokeWidth="2.4" strokeLinecap="round" strokeOpacity="0.55" />
-          </g>
-          <g id="condom-slash-group">
-            <circle r="96" fill="none" stroke="#F43F5E" strokeWidth="7" />
-            <line
-              id="condom-slash"
-              x1="-64"
-              y1="64"
-              x2="64"
-              y2="-64"
-              stroke="#F43F5E"
-              strokeWidth="7"
-              strokeLinecap="round"
-            />
-          </g>
-        </g>
+        {/* Impacto en la persona B */}
+        <circle className="hit-ring" cx="690" cy="262" r="30" fill="none" stroke="#E11D48" strokeWidth="4" opacity="0" />
+        {[0, 1, 2].map((i) => <Virus key={`a${i}`} className="virus-a" />)}
+        {[0, 1, 2].map((i) => <Virus key={`b${i}`} className="virus-b" />)}
 
-        <g transform="translate(334 250)">
-          <circle className="risk-dot" r="14" fill="#F43F5E" fillOpacity="0.22" stroke="#F43F5E" strokeWidth="2.4" />
-          <g stroke="#F43F5E" strokeWidth="2.2" strokeLinecap="round">
-            <path d="M 0 -21 V -28 M 0 21 V 28 M -21 0 H -28 M 21 0 H 28" />
-          </g>
-        </g>
-        <g transform="translate(864 252)">
-          <g id="amber-burst" transform="translate(0 0)">
-            <path
-              d="M 0 -42 L 7 -16 L 33 -27 L 18 -3 L 44 7 L 17 15 L 27 41 L 3 23 L -11 46 L -16 20 L -43 28 L -25 5 L -46 -9 L -19 -12 L -27 -40 L -4 -21 L 8 -45 Z"
-              fill="#F59E0B"
-              fillOpacity="0.15"
-              stroke="#F59E0B"
-              strokeWidth="2.4"
-              strokeLinejoin="round"
-            />
-          </g>
-          <circle className="risk-dot" r="14" fill="#F43F5E" fillOpacity="0.22" stroke="#F43F5E" strokeWidth="2.4" />
-          <circle r="5" fill="#F43F5E" />
-        </g>
-        <g transform="translate(966 420)">
-          <circle className="risk-dot" r="12" fill="#F43F5E" fillOpacity="0.22" stroke="#F43F5E" strokeWidth="2.2" />
-          <circle r="4.2" fill="#F43F5E" />
-        </g>
-      </svg>
-    </div>
+        <CondomPacket />
+      </Stage>
+    </SceneRoot>
   );
 }
