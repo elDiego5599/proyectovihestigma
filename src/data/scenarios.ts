@@ -70,4 +70,23 @@ export const SCENARIOS: ScenarioMeta[] = [
     feedback:
       'El sudor, las lágrimas, la saliva y la orina no transmiten el VIH. Solo lo transmiten sangre, semen, líquido preseminal, secreciones vaginales o rectales y leche materna.',
   },
+  {
+    id: 'appearance',
+    code: '07',
+    title: 'Apariencia física',
+    statement:
+      'Andrés cree que puede saber si una persona tiene VIH simplemente observando su apariencia física.',
+    answer: 'mito',
+    feedback:
+      'No se puede saber si alguien tiene VIH por cómo se ve. Muchas personas con VIH se ven y se sienten sanas durante años. La única forma de saberlo es hacerse la prueba.',
+  },
+  {
+    id: 'hiv-aids',
+    code: '08',
+    title: 'VIH no es SIDA',
+    statement: 'Si una persona tiene VIH, automáticamente significa que ya desarrolló SIDA.',
+    answer: 'mito',
+    feedback:
+      'El VIH es el virus; el SIDA es la etapa avanzada que puede aparecer años después si no hay tratamiento. Con tratamiento antirretroviral, una persona con VIH puede no desarrollar SIDA nunca y vivir una vida larga y sana.',
+  },
 ];
