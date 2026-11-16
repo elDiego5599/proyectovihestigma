@@ -38,9 +38,9 @@ function armCurve(S: Pt, E: Pt, H: Pt) {
 }
 
 /** Contorno relleno de un tramo del brazo entre t0 y t1, con grosor decreciente hacia la muñeca. */
-function tubePath(S: Pt, E: Pt, H: Pt, t0: number, t1: number, extra = 0) {
+function tubePath(S: Pt, E: Pt, H: Pt, t0: number, t1: number, extra = 0, taper = 8) {
   const { at, tangent } = armCurve(S, E, H);
-  const width = (t: number) => 29 - 8 * t + extra;
+  const width = (t: number) => 29 - taper * t + extra;
   const steps = 16;
   const left: string[] = [];
   const right: string[] = [];
@@ -109,19 +109,22 @@ function Arm({
   const E = m(p.E);
   const H = m(p.H);
   const curve = armCurve(S, E, H);
-  const sleeveEnd = sleeves === 'short' ? 0.3 : 0.9;
+  // Al sujetar algo, el brazo va completo en manga y sin adelgazar, para que no parezca un palito
+  const holding = pose === 'hold';
+  const taper = holding ? 0 : 8;
+  const sleeveEnd = holding ? 0.97 : sleeves === 'short' ? 0.3 : 0.9;
   const [hx, hy] = curve.at(sleeveEnd);
   const [tx, ty] = curve.tangent(sleeveEnd);
-  const hemW = (29 - 8 * sleeveEnd + 3) / 2;
+  const hemW = (29 - taper * sleeveEnd + 3) / 2;
 
   return (
     <g>
       {/* Piel del brazo completo */}
-      <path d={tubePath(S, E, H, 0, 1)} fill={skin} />
+      <path d={tubePath(S, E, H, 0, 1, 0, taper)} fill={skin} />
       {/* Manga: hombro redondeado del mismo color de la camiseta */}
       <circle cx={S[0]} cy={S[1]} r="16" fill={shirt} />
       <path
-        d={tubePath(S, E, H, 0, sleeveEnd, 3)}
+        d={tubePath(S, E, H, 0, sleeveEnd, 3, taper)}
         fill={shirt}
       />
       {/* Dobladillo */}
