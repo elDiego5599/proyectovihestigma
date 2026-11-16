@@ -1,249 +1,186 @@
-import { useEffect, useRef } from 'react';
 import { gsap } from '../../lib/gsap';
 import { Person } from '../art/Person';
+import { Stage, SceneRoot, useSceneAnimation } from '../art/Stage';
+import { Table } from '../art/Table';
 
-export function HygieneScenario() {
-  const rootRef = useRef<HTMLDivElement | null>(null);
+interface ScenarioProps {
+  isResolved?: boolean;
+}
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+const SCALE = 1.25;
+const A_X = 320;
+const A_Y = 448;
+const B_X = 800;
+const B_Y = 424;
+const SINK_X = 760;
+const COUNTER_TOP = 356;
 
-    const context = gsap.context(() => {
-      gsap.set('.hyg-sweat', { opacity: 0, y: -14, scale: 0.7, transformOrigin: 'center center' });
-      gsap.set('#hyg-tear', { opacity: 0, y: -6, scale: 0.7, transformOrigin: 'center center' });
-      gsap.set('#hyg-tap-drop', { opacity: 0, y: -10, scale: 0.7, transformOrigin: 'center center' });
-      gsap.set('#hyg-ripple', { opacity: 0, scale: 0.4, transformOrigin: 'center center' });
+/** Botella de agua deportiva, en coordenadas locales de quien la sostiene. */
+function WaterBottle() {
+  return (
+    <g transform="translate(48 -84)">
+      <rect x="-7" y="-58" width="14" height="10" rx="3" fill="#0F172A" />
+      <rect x="-14" y="-48" width="28" height="56" rx="9" fill="#38BDF8" opacity="0.85" />
+      <rect x="-14" y="-30" width="28" height="14" fill="#0284C7" />
+      <line x1="-7" y1="-42" x2="-7" y2="2" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" opacity="0.7" />
+    </g>
+  );
+}
 
-      gsap.to('#hyg-runner-motion', {
-        y: -6,
-        rotation: 1.2,
-        duration: 0.62,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        transformOrigin: '50% 100%',
-      });
+function Sink() {
+  return (
+    <g>
+      {/* Lavamanos empotrado */}
+      <ellipse cx={SINK_X} cy={COUNTER_TOP + 20} rx="74" ry="14" fill="#F8FAFC" stroke="#CBD5E1" strokeWidth="2" />
+      <ellipse cx={SINK_X} cy={COUNTER_TOP + 22} rx="60" ry="9" fill="#E2E8F0" />
+      <ellipse className="sink-water" cx={SINK_X} cy={COUNTER_TOP + 22} rx="40" ry="5" fill="#7DD3FC" opacity="0.7" />
+      {/* Grifo */}
+      <path
+        d={`M ${SINK_X + 56} ${COUNTER_TOP + 14} L ${SINK_X + 56} ${COUNTER_TOP - 40} Q ${SINK_X + 56} ${COUNTER_TOP - 56}, ${SINK_X + 40} ${COUNTER_TOP - 56} L ${SINK_X + 14} ${COUNTER_TOP - 56}`}
+        fill="none"
+        stroke="#94A3B8"
+        strokeWidth="10"
+        strokeLinecap="round"
+      />
+      <rect x={SINK_X + 44} y={COUNTER_TOP - 10} width="24" height="10" rx="4" fill="#64748B" />
+      {/* Chorro de agua */}
+      <rect
+        className="water-stream"
+        x={SINK_X + 8}
+        y={COUNTER_TOP - 52}
+        width="9"
+        height="68"
+        rx="4.5"
+        fill="#38BDF8"
+        opacity="0.75"
+      />
+      {[0, 1, 2].map((i) => (
+        <circle key={i} className="splash" cx={SINK_X + 12} cy={COUNTER_TOP + 18} r="3" fill="#7DD3FC" opacity="0" />
+      ))}
+      {/* Jabón */}
+      <g transform={`translate(${SINK_X - 110} ${COUNTER_TOP + 14})`}>
+        <rect x="-12" y="-34" width="24" height="34" rx="6" fill="#F9A8D4" />
+        <rect x="-4" y="-44" width="8" height="10" fill="#475569" />
+        <rect x="-4" y="-46" width="16" height="4" rx="2" fill="#475569" />
+      </g>
+    </g>
+  );
+}
 
-      gsap.to('.hyg-sweat', {
-        opacity: 1,
-        y: 26,
-        scale: 1,
-        duration: 1.15,
-        repeat: -1,
-        repeatDelay: 0.35,
-        ease: 'power1.in',
-        stagger: 0.28,
-      });
+function Background() {
+  const tiles = [];
+  for (let x = 0; x < 1100; x += 55) {
+    tiles.push(<line key={`v${x}`} x1={x} y1="0" x2={x} y2="480" stroke="#FFFFFF" strokeWidth="2" opacity="0.7" />);
+  }
+  for (let y = 0; y < 480; y += 55) {
+    tiles.push(<line key={`h${y}`} x1="0" y1={y} x2="1100" y2={y} stroke="#FFFFFF" strokeWidth="2" opacity="0.7" />);
+  }
+  return (
+    <g>
+      <rect width="1100" height="480" fill="#DDF1F7" />
+      {tiles}
+      <rect y="330" width="1100" height="150" fill="#C7E6EF" />
+      {/* Espejo sobre el lavamanos */}
+      <g transform={`translate(${SINK_X} 140)`}>
+        <rect x="-100" y="-80" width="200" height="150" rx="24" fill="#E0F2FE" stroke="#FFFFFF" strokeWidth="8" />
+        <path d="M -60 -50 L -20 -70 M -64 -20 L 10 -60" stroke="#FFFFFF" strokeWidth="6" strokeLinecap="round" opacity="0.8" />
+      </g>
+      {/* Puerta del baño con pictograma */}
+      <g transform="translate(70 70)">
+        <rect width="150" height="300" rx="10" fill="#7DD3FC" />
+        <rect x="10" y="10" width="130" height="290" rx="6" fill="#BAE6FD" />
+        <circle cx="120" cy="160" r="7" fill="#0369A1" />
+        <g transform="translate(75 70)" fill="#0369A1">
+          <circle cx="-20" cy="-14" r="7" />
+          <rect x="-28" y="-4" width="16" height="30" rx="5" />
+          <circle cx="20" cy="-14" r="7" />
+          <path d="M 20 -4 L 32 26 L 8 26 Z" />
+        </g>
+      </g>
+      {/* Toalla colgada */}
+      <g transform="translate(1010 150)">
+        <rect x="-36" y="-6" width="72" height="8" rx="4" fill="#94A3B8" />
+        <rect x="-28" y="0" width="56" height="110" rx="8" fill="#FBBF24" />
+        <rect x="-28" y="80" width="56" height="8" fill="#F59E0B" />
+      </g>
+    </g>
+  );
+}
 
-      gsap.to('#hyg-tear', {
-        opacity: 1,
-        y: 20,
-        duration: 1.6,
-        repeat: -1,
-        repeatDelay: 1.5,
-        ease: 'power1.in',
-        delay: 0.7,
-      });
+export function HygieneScenario(_props: ScenarioProps) {
+  const rootRef = useSceneAnimation(() => {
+    // La persona que hizo ejercicio respira agitada y bebe agua
+    gsap.to('#runner', { y: -4, duration: 0.7, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.fromTo(
+      '.sweat-drop',
+      { y: 0, opacity: 0 },
+      { keyframes: [{ opacity: 1, duration: 0.2 }, { y: 26, opacity: 0, duration: 1, ease: 'power1.in' }], repeat: -1, stagger: 0.45 },
+    );
 
-      gsap.to('#hyg-tap-drop', {
-        opacity: 1,
-        y: 42,
-        duration: 0.85,
-        repeat: -1,
-        repeatDelay: 0.9,
-        ease: 'power2.in',
-      });
-      gsap.to('#hyg-ripple', {
-        opacity: 0.55,
-        scale: 1.5,
-        duration: 1.1,
-        repeat: -1,
-        repeatDelay: 0.65,
-        ease: 'power1.out',
-        delay: 0.8,
-      });
-
-      gsap.to('#hyg-towel', {
-        rotation: 1.4,
-        duration: 2.6,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-        transformOrigin: '50% 0%',
-      });
-
-      gsap.to('#hyg-mirror-shine', {
-        opacity: 0.9,
-        duration: 1.8,
-        repeat: -1,
-        yoyo: true,
-        ease: 'sine.inOut',
-      });
-    }, rootRef);
-
-    return () => context.revert();
-  }, []);
+    // Quien se lava las manos frota y el agua corre
+    gsap.to('#washer', { y: -2, duration: 1.2, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.to('.water-stream', { opacity: 0.45, duration: 0.18, repeat: -1, yoyo: true, ease: 'none' });
+    gsap.to('.sink-water', { attr: { rx: 48 }, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut' });
+    gsap.utils.toArray<SVGCircleElement>('.splash').forEach((drop, i) => {
+      gsap.fromTo(
+        drop,
+        { x: 0, y: 0, opacity: 0.9 },
+        { x: (i - 1) * 18, y: -14, opacity: 0, duration: 0.6, repeat: -1, delay: i * 0.2, ease: 'power1.out' },
+      );
+    });
+  });
 
   return (
-    <div ref={rootRef} className="flex h-full w-full items-center justify-center px-4 py-2">
-      <svg
-        viewBox="0 0 1200 600"
-        className="h-full w-full select-none"
-        role="img"
-        aria-label="Una persona hace ejercicio y suda. A su lado hay un baño limpio con lavamanos, espejo y toalla. El sudor y los baños públicos no transmiten el VIH."
-        preserveAspectRatio="xMidYMid meet"
+    <SceneRoot rootRef={rootRef}>
+      <Stage
+        label="En un baño público, una persona sudada después de hacer ejercicio bebe agua mientras otra se lava las manos en el lavamanos."
+        background={<Background />}
       >
-        <circle cx="360" cy="300" r="228" fill="#FFFBEB" />
-        <circle cx="880" cy="304" r="232" fill="#EFF6FF" />
-        <circle cx="300" cy="176" r="13" fill="#FCD34D" opacity="0.55" />
-        <circle cx="1084" cy="166" r="12" fill="#93C5FD" opacity="0.6" />
-
-        <g id="hyg-runner-motion">
+        <g id="runner">
           <Person
-            x={368}
-            y={540}
-            scale={1.12}
-            skin="#8C5A3C"
-            hair="#111827"
-            shirt="#F59E0B"
-            lower="#2563EB"
+            x={A_X}
+            y={A_Y}
+            scale={SCALE}
+            shirtColor="#0284C7"
+            shirtShadow="#0369A1"
+            skinColor="#E0AC84"
+            skinShadow="#BF8760"
+            hairColor="#1E293B"
+            hairStyle="short"
+            expression="relieved"
+            sleeves="short"
+            arms={['down', 'hold']}
+            held={<WaterBottle />}
+          />
+          {/* Banda deportiva y gotas de sudor */}
+          <g transform={`translate(${A_X} ${A_Y}) scale(${SCALE})`}>
+            <circle className="sweat-drop" cx="-46" cy="-196" r="4" fill="#38BDF8" />
+            <circle className="sweat-drop" cx="48" cy="-206" r="3.5" fill="#38BDF8" />
+            <circle className="sweat-drop" cx="-40" cy="-226" r="3" fill="#38BDF8" />
+          </g>
+        </g>
+
+        <g id="washer">
+          <Person
+            x={B_X}
+            y={B_Y}
+            scale={SCALE}
+            flip
+            shirtColor="#16A34A"
+            shirtShadow="#15803D"
+            skinColor="#8D5524"
+            skinShadow="#6B3E18"
+            hairColor="#0F172A"
             hairStyle="curly"
-            pose="run"
-            shorts
-            stride
-            expression="grin"
-            look="right"
+            expression="calm"
+            arms={['table', 'table']}
+            blinkDelay={1.6}
           />
         </g>
 
-        <g transform="translate(26 6)">
-          <g id="hyg-tear">
-            <path
-              d="M 320 178 C 320 178 310 192 310 199 C 310 204 314 208 320 208 C 326 208 330 204 330 199 C 330 192 320 178 320 178 Z"
-              fill="#7DD3FC"
-              stroke="#0284C7"
-              strokeWidth="2"
-              strokeLinejoin="round"
-            />
-          </g>
-        </g>
-
-        <g className="hyg-sweat">
-          <path
-            d="M 262 132 C 262 132 251 148 251 156 C 251 162 256 166 262 166 C 268 166 273 162 273 156 C 273 148 262 132 262 132 Z"
-            fill="#BAE6FD"
-            stroke="#0284C7"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        </g>
-        <g className="hyg-sweat">
-          <path
-            d="M 432 196 C 432 196 422 210 422 217 C 422 222 426 226 432 226 C 438 226 442 222 442 217 C 442 210 432 196 432 196 Z"
-            fill="#BAE6FD"
-            stroke="#0284C7"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        </g>
-        <g className="hyg-sweat">
-          <path
-            d="M 236 268 C 236 268 227 280 227 286 C 227 291 231 294 236 294 C 241 294 245 291 245 286 C 245 280 236 268 236 268 Z"
-            fill="#BAE6FD"
-            stroke="#0284C7"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        </g>
-        <g className="hyg-sweat">
-          <path
-            d="M 486 316 C 486 316 477 328 477 334 C 477 339 481 342 486 342 C 491 342 495 339 495 334 C 495 328 486 316 486 316 Z"
-            fill="#BAE6FD"
-            stroke="#0284C7"
-            strokeWidth="2"
-            strokeLinejoin="round"
-          />
-        </g>
-
-        <g>
-          <g stroke="#DBEAFE" strokeWidth="2" opacity="0.85">
-            <path d="M 754 176 H 1006 M 754 236 H 1006 M 754 296 H 1006 M 754 356 H 1006" />
-            <path d="M 814 140 V 392 M 874 140 V 392 M 934 140 V 392" />
-          </g>
-
-          <rect x="768" y="118" width="224" height="164" rx="22" fill="#FFFFFF" stroke="#2563EB" strokeWidth="5" />
-          <rect x="786" y="136" width="188" height="128" rx="13" fill="#DBEAFE" stroke="#1E293B" strokeWidth="2.4" />
-          <path
-            id="hyg-mirror-shine"
-            d="M 816 246 L 872 152"
-            stroke="#FFFFFF"
-            strokeWidth="14"
-            strokeOpacity="0.6"
-            strokeLinecap="round"
-          />
-          <path d="M 892 246 L 930 184" stroke="#FFFFFF" strokeWidth="7" strokeOpacity="0.45" strokeLinecap="round" />
-
-          <rect x="770" y="368" width="344" height="24" rx="12" fill="#F8FAFC" stroke="#1E293B" strokeWidth="2.6" />
-          <path
-            d="M 784 392 C 784 438 806 462 854 470 L 1030 470 C 1078 462 1100 438 1100 392 Z"
-            fill="#FFFFFF"
-            stroke="#1E293B"
-            strokeWidth="2.6"
-            strokeLinejoin="round"
-          />
-          <ellipse cx="942" cy="418" rx="120" ry="34" fill="#E0F2FE" stroke="#1E293B" strokeWidth="2.4" />
-          <ellipse cx="942" cy="422" rx="88" ry="22" fill="#BAE6FD" />
-          <path d="M 1010 424 A 68 18 0 0 0 874 424" fill="none" stroke="#7DD3FC" strokeWidth="4" strokeLinecap="round" />
-
-          <rect x="1012" y="470" width="58" height="58" rx="10" fill="#F8FAFC" stroke="#1E293B" strokeWidth="2.6" />
-          <rect x="826" y="520" width="232" height="18" rx="9" fill="#F1F5F9" stroke="#1E293B" strokeWidth="2.6" />
-
-          <path
-            d="M 940 366 V 332 C 940 316 924 314 918 326"
-            fill="none"
-            stroke="#1E293B"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          <path
-            d="M 902 330 V 344"
-            fill="none"
-            stroke="#1E293B"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          <rect x="888" y="344" width="28" height="10" rx="5" fill="#60A5FA" stroke="#1E293B" strokeWidth="2" />
-          <circle id="hyg-tap-drop" cx="902" cy="360" r="6" fill="#7DD3FC" stroke="#0284C7" strokeWidth="1.6" />
-          <ellipse id="hyg-ripple" cx="902" cy="420" rx="18" ry="6" fill="none" stroke="#38BDF8" strokeWidth="2.6" />
-
-          <g transform="translate(600 232)">
-            <g id="hyg-towel">
-            <rect x="-10" y="-6" width="188" height="9" rx="4.5" fill="#CBD5E1" stroke="#1E293B" strokeWidth="2" />
-            <path
-              d="M 6 0 L 8 152 C 8 160 18 164 28 164 C 38 164 48 160 48 152 L 50 0 Z"
-              fill="#34D399"
-              stroke="#1E293B"
-              strokeWidth="2.4"
-              strokeLinejoin="round"
-            />
-            <path d="M 16 34 H 42 M 16 52 H 42 M 16 70 H 42" stroke="#ECFDF5" strokeWidth="3" strokeLinecap="round" strokeOpacity="0.75" />
-            <path
-              d="M 62 0 L 64 138 C 64 146 72 150 81 150 C 90 150 98 146 98 138 L 100 0 Z"
-              fill="#60A5FA"
-              stroke="#1E293B"
-              strokeWidth="2.4"
-              strokeLinejoin="round"
-            />
-            <path d="M 72 28 H 90 M 72 44 H 90 M 72 60 H 90" stroke="#EFF6FF" strokeWidth="3" strokeLinecap="round" strokeOpacity="0.8" />
-            </g>
-          </g>
-        </g>
-
-        <g fill="none" stroke="#CBD5E1" strokeWidth="3" strokeLinecap="round" opacity="0.85">
-          <path d="M 588 108 C 602 98 618 98 632 108" />
-          <path d="M 626 136 C 638 128 652 128 664 136" />
-        </g>
-      </svg>
-    </div>
+        <Table top={COUNTER_TOP} left={600} right={1000} surface="#F1F5F9" cloth={{ color: '#FFFFFF', shadow: '#CBD5E1' }} />
+        <Sink />
+      </Stage>
+    </SceneRoot>
   );
 }

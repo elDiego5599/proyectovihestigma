@@ -1,168 +1,139 @@
-export type HairStyle = 'short' | 'bob' | 'curly' | 'bun' | 'long';
-export type ArmPose = 'down' | 'open' | 'wave' | 'belly' | 'run';
-export type Expression = 'smile' | 'grin' | 'calm';
+import type { ReactNode } from 'react';
+
+export type HairStyle = 'short' | 'curly' | 'bun' | 'bob' | 'wavy';
+export type Expression = 'calm' | 'alert' | 'relieved' | 'focused' | 'happy';
+export type ArmPose = 'down' | 'reach' | 'hold' | 'cradle' | 'table';
+export type Sleeves = 'short' | 'long';
+
+type Pt = readonly [number, number];
+
+/**
+ * Geometría de cada pose para el brazo del lado +x (el que mira hacia delante).
+ * S = hombro, E = codo, H = mano. El brazo del lado -x se obtiene reflejando x.
+ */
+const POSES: Record<ArmPose, { S: Pt; E: Pt; H: Pt }> = {
+  down: { S: [58, -108], E: [76, -42], H: [80, 18] },
+  reach: { S: [58, -108], E: [98, -58], H: [160, -70] },
+  hold: { S: [58, -108], E: [80, -40], H: [48, -80] },
+  cradle: { S: [58, -108], E: [80, -40], H: [6, -32] },
+  table: { S: [58, -108], E: [82, -46], H: [40, -62] },
+};
+
+const lerp = (a: Pt, b: Pt, t: number): Pt => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+
+/** Curva cuadrática que pasa por S (t=0), E (t=0.5) y H (t=1): el codo queda redondeado. */
+function armCurve(S: Pt, E: Pt, H: Pt) {
+  const C: Pt = [2 * E[0] - (S[0] + H[0]) / 2, 2 * E[1] - (S[1] + H[1]) / 2];
+  const at = (t: number): Pt => {
+    const u = 1 - t;
+    return [u * u * S[0] + 2 * u * t * C[0] + t * t * H[0], u * u * S[1] + 2 * u * t * C[1] + t * t * H[1]];
+  };
+  const tangent = (t: number): Pt => {
+    const dx = 2 * (1 - t) * (C[0] - S[0]) + 2 * t * (H[0] - C[0]);
+    const dy = 2 * (1 - t) * (C[1] - S[1]) + 2 * t * (H[1] - C[1]);
+    const len = Math.hypot(dx, dy) || 1;
+    return [dx / len, dy / len];
+  };
+  return { at, tangent };
+}
+
+/** Contorno relleno de un tramo del brazo entre t0 y t1, con grosor decreciente hacia la muñeca. */
+function tubePath(S: Pt, E: Pt, H: Pt, t0: number, t1: number, extra = 0) {
+  const { at, tangent } = armCurve(S, E, H);
+  const width = (t: number) => 29 - 8 * t + extra;
+  const steps = 16;
+  const left: string[] = [];
+  const right: string[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const t = t0 + ((t1 - t0) * i) / steps;
+    const [x, y] = at(t);
+    const [tx, ty] = tangent(t);
+    const w = width(t) / 2;
+    left.push(`${(x - ty * w).toFixed(1)} ${(y + tx * w).toFixed(1)}`);
+    right.push(`${(x + ty * w).toFixed(1)} ${(y - tx * w).toFixed(1)}`);
+  }
+  return `M ${left.join(' L ')} L ${right.reverse().join(' L ')} Z`;
+}
+
+/** Punto sobre la cara exterior del antebrazo (lado +x, sin escala). Útil para colocar picaduras. */
+export function forearmPoint(pose: ArmPose, t: number, outward = 10): Pt {
+  const { S, E, H } = POSES[pose];
+  const [x, y] = armCurve(S, E, H).at(0.5 + t / 2);
+  return [x + outward, y];
+}
 
 export interface PersonProps {
   x: number;
   y: number;
   scale?: number;
   flip?: boolean;
-  skin?: string;
-  hair?: string;
-  shirt?: string;
-  lower?: string;
+  skinColor?: string;
+  skinShadow?: string;
+  shirtColor?: string;
+  shirtShadow?: string;
+  hairColor?: string;
   hairStyle?: HairStyle;
-  pose?: ArmPose;
-  pregnant?: boolean;
-  skirt?: boolean;
-  shorts?: boolean;
-  stride?: boolean;
   expression?: Expression;
-  look?: 'left' | 'right' | 'center';
+  /** [brazo trasero (-x), brazo delantero (+x)] */
+  arms?: [ArmPose, ArmPose];
+  sleeves?: Sleeves;
+  /** Se dibuja en coordenadas locales entre el torso y los brazos (vasos, bebés, botellas…). */
+  held?: ReactNode;
+  /** Retraso del parpadeo, para que no parpadeen todos a la vez. */
+  blinkDelay?: number;
+  id?: string;
 }
 
-const INK = '#1E293B';
-
-function armPath(side: 1 | -1, pose: ArmPose) {
-  if (pose === 'open') {
-    return side === 1
-      ? 'M 43 -276 C 72 -266 96 -246 108 -226'
-      : 'M -43 -276 C -72 -266 -96 -246 -108 -226';
-  }
-  if (pose === 'wave') {
-    return side === 1
-      ? 'M 43 -276 C 62 -302 70 -336 66 -366'
-      : 'M -43 -276 C -56 -240 -58 -192 -52 -150';
-  }
-  if (pose === 'belly') {
-    return side === 1
-      ? 'M 43 -276 C 66 -250 64 -208 52 -182'
-      : 'M -43 -276 C -66 -250 -64 -208 -52 -182';
-  }
-  if (pose === 'run') {
-    return side === 1
-      ? 'M 43 -276 C 68 -266 82 -238 86 -214'
-      : 'M -43 -276 C -66 -262 -80 -234 -86 -210';
-  }
-  return side === 1
-    ? 'M 43 -276 C 56 -240 58 -192 52 -150'
-    : 'M -43 -276 C -56 -240 -58 -192 -52 -150';
-}
-
-function handPoint(side: 1 | -1, pose: ArmPose): [number, number] {
-  if (pose === 'open') return [side * 108, -226];
-  if (pose === 'wave') return side === 1 ? [66, -366] : [-52, -150];
-  if (pose === 'belly') return [side * 52, -182];
-  if (pose === 'run') return [side * 86, side === 1 ? -214 : -210];
-  return [side * 52, -150];
-}
-
-function Hair({
-  style,
-  color,
-  front,
+function Arm({
+  side,
+  pose,
+  skin,
+  skinShadow,
+  shirt,
+  shirtShadow,
+  sleeves,
 }: {
-  style: HairStyle;
-  color: string;
-  front: boolean;
+  side: 1 | -1;
+  pose: ArmPose;
+  skin: string;
+  skinShadow: string;
+  shirt: string;
+  shirtShadow: string;
+  sleeves: Sleeves;
 }) {
-  if (front) {
-    if (style === 'bob') {
-      return (
-        <path
-          d="M -40 -370 C -26 -397 20 -401 40 -368 C 22 -381 4 -372 -2 -357 C -12 -370 -26 -378 -40 -370 Z"
-          fill={color}
-          stroke={INK}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      );
-    }
-    if (style === 'long') {
-      return (
-        <path
-          d="M -42 -362 C -24 -399 24 -399 42 -362 C 22 -377 10 -383 0 -362 C -10 -383 -22 -377 -42 -362 Z"
-          fill={color}
-          stroke={INK}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      );
-    }
-    if (style === 'curly') {
-      return (
-        <path
-          d="M -40 -370 C -30 -393 26 -396 40 -368 C 22 -376 4 -368 -2 -356 C -14 -368 -26 -376 -40 -370 Z"
-          fill={color}
-          stroke={INK}
-          strokeWidth="2"
-          strokeLinejoin="round"
-        />
-      );
-    }
-    return (
-      <path
-        d="M -41 -366 C -30 -401 30 -401 41 -366 C 18 -379 -18 -379 -41 -366 Z"
-        fill={color}
-        stroke={INK}
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-    );
-  }
+  const p = POSES[pose];
+  const m = (pt: Pt): Pt => [pt[0] * side, pt[1]];
+  const S = m(p.S);
+  const E = m(p.E);
+  const H = m(p.H);
+  const curve = armCurve(S, E, H);
+  const sleeveEnd = sleeves === 'short' ? 0.3 : 0.9;
+  const [hx, hy] = curve.at(sleeveEnd);
+  const [tx, ty] = curve.tangent(sleeveEnd);
+  const hemW = (29 - 8 * sleeveEnd + 3) / 2;
 
-  if (style === 'bob') {
-    return (
-      <path
-        d="M -48 -348 C -55 -411 55 -411 48 -348 L 48 -294 C 34 -319 30 -332 0 -332 C -30 -332 -34 -319 -48 -294 Z"
-        fill={color}
-        stroke={INK}
-        strokeWidth="2.4"
-        strokeLinejoin="round"
-      />
-    );
-  }
-  if (style === 'long') {
-    return (
-      <path
-        d="M -48 -348 C -55 -411 55 -411 48 -348 L 54 -246 C 34 -268 30 -300 0 -300 C -30 -300 -34 -268 -54 -246 Z"
-        fill={color}
-        stroke={INK}
-        strokeWidth="2.4"
-        strokeLinejoin="round"
-      />
-    );
-  }
-  if (style === 'curly') {
-    return (
-      <g fill={color} stroke={INK} strokeWidth="2.2">
-        <circle cx="-32" cy="-386" r="26" />
-        <circle cx="0" cy="-401" r="28" />
-        <circle cx="32" cy="-386" r="26" />
-        <circle cx="-45" cy="-352" r="18" />
-        <circle cx="45" cy="-352" r="18" />
-      </g>
-    );
-  }
-  if (style === 'bun') {
-    return (
-      <g fill={color} stroke={INK} strokeWidth="2.4">
-        <circle cx="0" cy="-405" r="18" />
-        <path
-          d="M -44 -346 C -46 -406 46 -406 44 -346 C 34 -374 18 -385 0 -385 C -18 -385 -34 -374 -44 -346 Z"
-          strokeLinejoin="round"
-        />
-      </g>
-    );
-  }
   return (
-    <path
-      d="M -44 -346 C -46 -406 46 -406 44 -346 C 34 -374 18 -385 0 -385 C -18 -385 -34 -374 -44 -346 Z"
-      fill={color}
-      stroke={INK}
-      strokeWidth="2.4"
-      strokeLinejoin="round"
-    />
+    <g>
+      {/* Piel del brazo completo */}
+      <path d={tubePath(S, E, H, 0, 1)} fill={skin} />
+      {/* Manga: hombro redondeado del mismo color de la camiseta */}
+      <circle cx={S[0]} cy={S[1]} r="16" fill={shirt} />
+      <path d={tubePath(S, E, H, 0, sleeveEnd, 3)} fill={shirt} />
+      {/* Dobladillo */}
+      <line
+        x1={hx - ty * hemW}
+        y1={hy + tx * hemW}
+        x2={hx + ty * hemW}
+        y2={hy - tx * hemW}
+        stroke={shirtShadow}
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        opacity="0.55"
+      />
+      {/* Mano */}
+      <ellipse cx={H[0]} cy={H[1]} rx="12" ry="13" fill={skin} />
+      <ellipse cx={H[0] - 4 * side} cy={H[1] + 3} rx="5" ry="6" fill={skinShadow} opacity="0.3" />
+    </g>
   );
 }
 
@@ -171,208 +142,161 @@ export function Person({
   y,
   scale = 1,
   flip = false,
-  skin = '#E8B48C',
-  hair = '#1F2937',
-  shirt = '#F97316',
-  lower = '#1E293B',
+  skinColor = '#E8B48C',
+  skinShadow = '#CC8E67',
+  shirtColor = '#3B82F6',
+  shirtShadow = '#1D4ED8',
+  hairColor = '#1E293B',
   hairStyle = 'short',
-  pose = 'down',
-  pregnant = false,
-  skirt = false,
-  shorts = false,
-  stride = false,
-  expression = 'smile',
-  look = 'center',
+  expression = 'calm',
+  arms = ['down', 'down'],
+  sleeves = 'long',
+  held,
+  blinkDelay = 0,
+  id,
 }: PersonProps) {
-  const pupil = look === 'left' ? -2.4 : look === 'right' ? 2.4 : 0;
-  const mouth =
-    expression === 'calm'
-      ? 'M -11 -325 Q 0 -321 11 -325'
-      : 'M -12 -328 Q 0 -316 12 -328';
+  const armProps = { skin: skinColor, skinShadow, shirt: shirtColor, shirtShadow, sleeves };
 
   return (
-    <g transform={`translate(${x} ${y}) scale(${flip ? -scale : scale} ${scale})`}>
-      <ellipse cx="0" cy="2" rx="70" ry="12" fill="#0F172A" opacity="0.07" />
-
-      {skirt ? (
-        <g
-          fill="none"
-          stroke={skin}
-          strokeWidth="23"
-          strokeLinecap="round"
-        >
-          <path d="M -26 -104 C -28 -74 -28 -44 -28 -18" />
-          <path d="M 26 -104 C 28 -74 28 -44 28 -18" />
-        </g>
-      ) : shorts ? (
-        <g fill="none" stroke={skin} strokeWidth="23" strokeLinecap="round">
-          {stride ? (
-            <>
-              <path d="M -26 -104 C -44 -78 -58 -48 -70 -18" />
-              <path d="M 26 -104 C 42 -78 52 -50 60 -22" />
-            </>
-          ) : (
-            <>
-              <path d="M -26 -104 C -28 -74 -28 -44 -28 -18" />
-              <path d="M 26 -104 C 28 -74 28 -44 28 -18" />
-            </>
-          )}
-        </g>
-      ) : stride ? (
-        <g fill="none" stroke={lower} strokeWidth="24" strokeLinecap="round">
-          <path d="M -26 -134 C -48 -104 -62 -66 -72 -18" />
-          <path d="M 26 -134 C 48 -102 58 -70 64 -22" />
-        </g>
-      ) : (
-        <g fill="none" stroke={lower} strokeWidth="24" strokeLinecap="round">
-          <path d="M -26 -134 C -30 -96 -30 -54 -30 -18" />
-          <path d="M 26 -134 C 30 -96 30 -54 30 -18" />
+    <g id={id} transform={`translate(${x} ${y}) scale(${flip ? -scale : scale} ${scale})`}>
+      {/* Cabello posterior */}
+      {hairStyle === 'bun' && <circle cx="0" cy="-215" r="28" fill={hairColor} />}
+      {hairStyle === 'curly' && (
+        <g fill={hairColor}>
+          <circle cx="-42" cy="-188" r="26" />
+          <circle cx="42" cy="-188" r="26" />
+          <circle cx="0" cy="-210" r="30" />
+          <circle cx="-32" cy="-156" r="22" />
+          <circle cx="32" cy="-156" r="22" />
         </g>
       )}
-
-      {stride ? (
-        <g fill="#F8FAFC" stroke={INK} strokeWidth="2.4">
-          <ellipse cx="-74" cy="-10" rx="23" ry="10" transform="rotate(-16 -74 -10)" />
-          <ellipse cx="66" cy="-12" rx="23" ry="10" transform="rotate(14 66 -12)" />
-        </g>
-      ) : (
-        <g fill="#F8FAFC" stroke={INK} strokeWidth="2.4">
-          <rect x="-48" y="-18" width="38" height="18" rx="8" />
-          <rect x="10" y="-18" width="38" height="18" rx="8" />
-          <path d="M -46 -6 H -12 M 12 -6 H 46" stroke={lower} strokeWidth="3" strokeLinecap="round" />
-        </g>
-      )}
-
-      <g fill="none" strokeLinecap="round">
-        {([1, -1] as const).map((side) => (
-          <g key={side}>
-            <path d={armPath(side, pose)} stroke={INK} strokeWidth="24" />
-            <path d={armPath(side, pose)} stroke={skin} strokeWidth="18" />
-          </g>
-        ))}
-        {([1, -1] as const).map((side) => {
-          const [handX, handY] = handPoint(side, pose);
-          return (
-            <circle
-              key={side}
-              cx={handX}
-              cy={handY}
-              r="10"
-              fill={skin}
-              stroke={INK}
-              strokeWidth="2.2"
-            />
-          );
-        })}
-      </g>
-
-      <rect
-        x="-14"
-        y="-326"
-        width="28"
-        height="38"
-        rx="11"
-        fill={skin}
-        stroke={INK}
-        strokeWidth="2.2"
-      />
-
-      {skirt ? (
+      {hairStyle === 'bob' && (
         <path
-          d="M -46 -142 L 46 -142 L 64 -58 C 28 -45 -28 -45 -64 -58 Z"
-          fill={lower}
-          stroke={INK}
-          strokeWidth="2.4"
-          strokeLinejoin="round"
+          d="M -56 -180 C -54 -115, -42 -95, -34 -90 L 34 -90 C 42 -95, 54 -115, 56 -180 Z"
+          fill={hairColor}
         />
-      ) : null}
+      )}
+      {hairStyle === 'wavy' && (
+        <path
+          d="M -54 -180 C -62 -110, -40 -84, -30 -76 L 30 -76 C 40 -84, 62 -110, 54 -180 Z"
+          fill={hairColor}
+        />
+      )}
+      <ellipse cx="0" cy="-168" rx="48" ry="50" fill={hairColor} />
 
+      {/* Torso */}
       <path
-        d="M -45 -292 C -58 -262 -60 -200 -52 -132 L 52 -132 C 60 -200 58 -262 45 -292 C 30 -303 -30 -303 -45 -292 Z"
-        fill={shirt}
-        stroke={INK}
+        d="M -62 40 L -66 -78 C -66 -108, -48 -124, -18 -128 L 18 -128 C 48 -124, 66 -108, 66 -78 L 62 40 Z"
+        fill={shirtColor}
+      />
+      <path
+        d="M -62 40 L -66 -78 C -66 -100, -56 -114, -40 -120 C -46 -80, -46 -20, -42 40 Z"
+        fill={shirtShadow}
+        opacity="0.35"
+      />
+      {/* Cuello de la camiseta */}
+      <path d="M -26 -126 C -18 -104, 18 -104, 26 -126 Z" fill={shirtShadow} opacity="0.45" />
+
+      {/* Cuello */}
+      <rect x="-16" y="-142" width="32" height="34" rx="14" fill={skinColor} />
+      <path d="M -16 -134 Q 0 -120 16 -134 L 16 -122 Q 0 -110 -16 -122 Z" fill={skinShadow} opacity="0.7" />
+
+      {held}
+
+      <Arm side={-1} pose={arms[0]} {...armProps} />
+      <Arm side={1} pose={arms[1]} {...armProps} />
+
+      {/* Orejas */}
+      <circle cx="-43" cy="-165" r="10" fill={skinColor} />
+      <circle cx="-43" cy="-165" r="5.5" fill={skinShadow} opacity="0.6" />
+      <circle cx="43" cy="-165" r="10" fill={skinColor} />
+      <circle cx="43" cy="-165" r="5.5" fill={skinShadow} opacity="0.6" />
+
+      {/* Rostro */}
+      <rect x="-42" y="-212" width="84" height="96" rx="42" fill={skinColor} />
+      <circle cx="-26" cy="-154" r="9" fill="#F43F5E" opacity="0.14" />
+      <circle cx="26" cy="-154" r="9" fill="#F43F5E" opacity="0.14" />
+
+      {/* Cabello frontal */}
+      {hairStyle === 'short' && (
+        <path d="M -44 -178 C -40 -222, 40 -222, 44 -178 C 28 -196, -16 -198, -44 -178 Z" fill={hairColor} />
+      )}
+      {hairStyle === 'curly' && (
+        <path
+          d="M -44 -176 C -38 -218, 38 -218, 44 -176 C 30 -188, 14 -196, 0 -188 C -14 -196, -30 -188, -44 -176 Z"
+          fill={hairColor}
+        />
+      )}
+      {hairStyle === 'bun' && (
+        <path d="M -44 -180 C -38 -224, 38 -224, 44 -180 C 24 -198, -24 -198, -44 -180 Z" fill={hairColor} />
+      )}
+      {(hairStyle === 'bob' || hairStyle === 'wavy') && (
+        <path
+          d="M -44 -174 C -38 -222, 38 -222, 44 -174 C 32 -190, 16 -196, -2 -188 C -20 -196, -34 -190, -44 -174 Z"
+          fill={hairColor}
+        />
+      )}
+
+      {/* Nariz */}
+      <path
+        d="M 0 -166 C 1 -156, 3 -152, 6 -152"
+        fill="none"
+        stroke={skinShadow}
         strokeWidth="2.4"
-        strokeLinejoin="round"
+        strokeLinecap="round"
       />
 
-      {pregnant ? (
-        <g>
-          <ellipse
-            cx="0"
-            cy="-174"
-            rx="52"
-            ry="60"
-            fill={shirt}
-            stroke={INK}
-            strokeWidth="2.4"
-          />
-          <path
-            d="M -30 -188 C -18 -206 8 -212 28 -198"
-            fill="none"
-            stroke="#FFFFFF"
-            strokeWidth="2.2"
-            strokeOpacity="0.55"
-            strokeLinecap="round"
-          />
-        </g>
-      ) : null}
-
-      {shorts ? (
+      {/* Cejas */}
+      <g fill="none" stroke={hairColor} strokeWidth="3.2" strokeLinecap="round">
         <path
-          d="M -50 -140 L 50 -140 L 44 -74 L 8 -74 L 0 -112 L -8 -74 L -44 -74 Z"
-          fill={lower}
-          stroke={INK}
-          strokeWidth="2.4"
-          strokeLinejoin="round"
-        />
-      ) : null}
-
-      <g>
-        <Hair style={hairStyle} color={hair} front={false} />
-        <circle cx="-42" cy="-350" r="9" fill={skin} stroke={INK} strokeWidth="2.2" />
-        <circle cx="42" cy="-350" r="9" fill={skin} stroke={INK} strokeWidth="2.2" />
-        <circle cx="0" cy="-350" r="42" fill={skin} stroke={INK} strokeWidth="2.4" />
-        <Hair style={hairStyle} color={hair} front />
-
-        <path
-          d="M -25 -371 Q -17 -378 -9 -372"
-          fill="none"
-          stroke={INK}
-          strokeWidth="2.4"
-          strokeLinecap="round"
+          d={
+            expression === 'alert'
+              ? 'M -27 -182 L -13 -188'
+              : expression === 'focused'
+                ? 'M -27 -183 L -13 -181'
+                : 'M -26 -183 Q -19 -188 -13 -183'
+          }
         />
         <path
-          d="M 9 -372 Q 17 -378 25 -371"
-          fill="none"
-          stroke={INK}
-          strokeWidth="2.4"
-          strokeLinecap="round"
+          d={
+            expression === 'alert'
+              ? 'M 13 -188 L 27 -182'
+              : expression === 'focused'
+                ? 'M 13 -181 L 27 -183'
+                : 'M 13 -183 Q 19 -188 26 -183'
+          }
         />
-
-        <g>
-          <circle cx="-17" cy="-351" r="5.6" fill="#FFFFFF" stroke={INK} strokeWidth="1.6" />
-          <circle cx="17" cy="-351" r="5.6" fill="#FFFFFF" stroke={INK} strokeWidth="1.6" />
-          <circle cx={-17 + pupil} cy="-351" r="2.9" fill={INK} />
-          <circle cx={17 + pupil} cy="-351" r="2.9" fill={INK} />
-        </g>
-
-        <path
-          d="M 0 -347 Q 5 -341 0 -338"
-          fill="none"
-          stroke={INK}
-          strokeWidth="2.2"
-          strokeLinecap="round"
-        />
-        <path
-          d={mouth}
-          fill="none"
-          stroke={INK}
-          strokeWidth="2.6"
-          strokeLinecap="round"
-        />
-        <circle cx="-27" cy="-336" r="7" fill="#FB7185" opacity="0.18" />
-        <circle cx="27" cy="-336" r="7" fill="#FB7185" opacity="0.18" />
       </g>
+
+      {/* Ojos (parpadean con CSS) */}
+      <g className="person-eyes" style={{ animationDelay: `${blinkDelay}s` }}>
+        {expression === 'happy' ? (
+          <g fill="none" stroke="#0F172A" strokeWidth="3" strokeLinecap="round">
+            <path d="M -24 -167 Q -19 -173 -14 -167" />
+            <path d="M 14 -167 Q 19 -173 24 -167" />
+          </g>
+        ) : (
+          <>
+            <circle cx="-19" cy="-168" r="4.4" fill="#0F172A" />
+            <circle cx="-17.5" cy="-170.5" r="1.4" fill="#FFFFFF" />
+            <circle cx="19" cy="-168" r="4.4" fill="#0F172A" />
+            <circle cx="20.5" cy="-170.5" r="1.4" fill="#FFFFFF" />
+          </>
+        )}
+      </g>
+
+      {/* Boca */}
+      {expression === 'alert' ? (
+        <ellipse cx="0" cy="-143" rx="6" ry="4.5" fill="#7C2D12" opacity="0.8" />
+      ) : expression === 'happy' ? (
+        <path d="M -13 -147 Q 0 -128 13 -147 Z" fill="#7C2D12" opacity="0.85" />
+      ) : expression === 'relieved' ? (
+        <path d="M -12 -145 Q 0 -134 12 -145" fill="none" stroke="#994D28" strokeWidth="3" strokeLinecap="round" />
+      ) : expression === 'focused' ? (
+        <path d="M -9 -144 L 9 -144" fill="none" stroke="#994D28" strokeWidth="2.8" strokeLinecap="round" />
+      ) : (
+        <path d="M -11 -145 Q 0 -138 11 -145" fill="none" stroke="#994D28" strokeWidth="3" strokeLinecap="round" />
+      )}
     </g>
   );
 }
