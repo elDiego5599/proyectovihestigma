@@ -16,9 +16,9 @@ const LENS_W = { x: A_X + LENS.x * A_SCALE, y: A_Y + LENS.y * A_SCALE };
 const P_SCALE = 1.08;
 const P_Y = 456;
 const PEOPLE = [
-  { x: 560, shirt: '#F59E0B', shadow: '#B45309', skin: '#F2C19E', skinShadow: '#D09772', hair: '#78350F', style: 'bob' as const, delay: 0.6 },
-  { x: 770, shirt: '#0EA5E9', shadow: '#0369A1', skin: '#8D5524', skinShadow: '#6B3E18', hair: '#0F172A', style: 'short' as const, delay: 1.9 },
-  { x: 975, shirt: '#22C55E', shadow: '#15803D', skin: '#C68642', skinShadow: '#A0692F', hair: '#1C1917', style: 'curly' as const, delay: 1.1 },
+  { x: 560, label: 'VIH', shirt: '#F59E0B', shadow: '#B45309', skin: '#F2C19E', skinShadow: '#D09772', hair: '#78350F', style: 'bob' as const, delay: 0.6 },
+  { x: 770, label: 'Sano', shirt: '#0EA5E9', shadow: '#0369A1', skin: '#8D5524', skinShadow: '#6B3E18', hair: '#0F172A', style: 'short' as const, delay: 1.9 },
+  { x: 975, label: 'Sano', shirt: '#22C55E', shadow: '#15803D', skin: '#C68642', skinShadow: '#A0692F', hair: '#1C1917', style: 'curly' as const, delay: 1.1 },
 ];
 const faceY = P_Y - 165 * P_SCALE;
 
@@ -26,20 +26,27 @@ const faceY = P_Y - 165 * P_SCALE;
 function Magnifier() {
   return (
     <g>
-      <line x1="48" y1="-80" x2={LENS.x - 14} y2={LENS.y + 20} stroke="#334155" strokeWidth="9" strokeLinecap="round" />
+      <line x1="66" y1="-86" x2={LENS.x - 10} y2={LENS.y + 20} stroke="#334155" strokeWidth="9" strokeLinecap="round" />
       <circle cx={LENS.x} cy={LENS.y} r="24" fill="#E0F2FE" opacity="0.75" stroke="#334155" strokeWidth="6" />
       <path d={`M ${LENS.x - 12} ${LENS.y - 8} Q ${LENS.x - 8} ${LENS.y - 14} ${LENS.x} ${LENS.y - 15}`} stroke="#FFFFFF" strokeWidth="4" fill="none" strokeLinecap="round" />
     </g>
   );
 }
 
-function Question({ x, i }: { x: number; i: number }) {
+function Label({ x, i, text }: { x: number; i: number; text: string }) {
+  const hiv = text === 'VIH';
+  const fill = hiv ? '#FFE4E6' : '#D1FAE5';
+  const stroke = hiv ? '#FDA4AF' : '#6EE7B7';
+  const ink = hiv ? '#BE123C' : '#047857';
   return (
     <g transform={`translate(${x} ${faceY - 104})`}>
       <g className={`ask ask-${i}`} opacity="0">
-        <circle r="24" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="2" />
-        <path d="M -8 22 L 0 34 L 6 21 Z" fill="#FFFFFF" />
-        <text y="10" textAnchor="middle" fontSize="30" fontWeight="900" fill="#64748B" fontFamily="inherit">?</text>
+        <rect x="-38" y="-20" width="76" height="40" rx="20" fill={fill} stroke={stroke} strokeWidth="2" />
+        <path d="M -7 19 L 0 30 L 7 19 Z" fill={fill} stroke={stroke} strokeWidth="2" strokeLinejoin="round" />
+        <rect x="-8" y="16" width="16" height="4" fill={fill} />
+        <text y="7" textAnchor="middle" fontSize="20" fontWeight="800" fill={ink} fontFamily="inherit">
+          {text}
+        </text>
       </g>
     </g>
   );
@@ -130,7 +137,7 @@ export function AppearanceScenario(_props: ScenarioProps) {
   return (
     <SceneRoot rootRef={rootRef}>
       <Stage
-        label="Andrés mira con una lupa a tres personas en la calle; todas se ven sanas y sobre cada una aparece un signo de pregunta. Al final aparece una prueba de VIH, la única forma de saberlo."
+        label="Andrés mira con una lupa a tres personas en la calle; todas se ven sanas y sobre ellas aparece VIH, Sano y Sano aunque se ven igual. Al final aparece una prueba de VIH, la única forma de saberlo."
         background={<Background />}
       >
         <Person
@@ -180,7 +187,7 @@ export function AppearanceScenario(_props: ScenarioProps) {
           opacity="0"
         />
         {PEOPLE.map((p, i) => (
-          <Question key={p.x} x={p.x} i={i} />
+          <Label key={p.x} x={p.x} i={i} text={p.label} />
         ))}
         <TestKit />
       </Stage>

@@ -14,7 +14,7 @@ type Pt = readonly [number, number];
 const POSES: Record<ArmPose, { S: Pt; E: Pt; H: Pt }> = {
   down: { S: [58, -108], E: [76, -42], H: [80, 18] },
   reach: { S: [58, -108], E: [98, -58], H: [160, -70] },
-  hold: { S: [58, -108], E: [80, -40], H: [48, -80] },
+  hold: { S: [58, -108], E: [90, -42], H: [66, -86] },
   cradle: { S: [58, -108], E: [80, -40], H: [6, -32] },
   table: { S: [58, -108], E: [82, -46], H: [40, -62] },
 };
@@ -137,24 +137,6 @@ function Arm({
   );
 }
 
-/** Dedos que envuelven el objeto sostenido en la pose 'hold'. */
-function Grip({ side, skin, skinShadow }: { side: 1 | -1; skin: string; skinShadow: string }) {
-  const [hx, hy] = POSES.hold.H;
-  const x = hx * side;
-  return (
-    <g>
-      <rect x={x - 11} y={hy - 11} width="22" height="23" rx="9" fill={skin} />
-      <path
-        d={`M ${x - 9} ${hy - 3} L ${x + 9} ${hy - 3} M ${x - 9} ${hy + 4} L ${x + 9} ${hy + 4}`}
-        stroke={skinShadow}
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        opacity="0.55"
-      />
-    </g>
-  );
-}
-
 export function Person({
   x,
   y,
@@ -174,7 +156,6 @@ export function Person({
   id,
 }: PersonProps) {
   const armProps = { skin: skinColor, skinShadow, shirt: shirtColor, shirtShadow, sleeves };
-  const inHand = arms.includes('hold');
 
   return (
     <g id={id} transform={`translate(${x} ${y}) scale(${flip ? -scale : scale} ${scale})`}>
@@ -220,15 +201,10 @@ export function Person({
       <rect x="-16" y="-142" width="32" height="34" rx="14" fill={skinColor} />
       <path d="M -16 -134 Q 0 -120 16 -134 L 16 -122 Q 0 -110 -16 -122 Z" fill={skinShadow} opacity="0.7" />
 
-      {!inHand && held}
+      {held}
 
       <Arm side={-1} pose={arms[0]} {...armProps} />
       <Arm side={1} pose={arms[1]} {...armProps} />
-
-      {/* Objetos sostenidos con la mano: delante del brazo y con los dedos encima */}
-      {inHand && held}
-      {arms[0] === 'hold' && <Grip side={-1} skin={skinColor} skinShadow={skinShadow} />}
-      {arms[1] === 'hold' && <Grip side={1} skin={skinColor} skinShadow={skinShadow} />}
 
       {/* Orejas */}
       <circle cx="-43" cy="-165" r="10" fill={skinColor} />
