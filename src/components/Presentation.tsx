@@ -50,13 +50,8 @@ const SLIDES: Slide[] = [
   {
     art: RoutesArt,
     artBg: '#F8FAFC',
-    layout: 'split',
+    layout: 'stack',
     title: 'Solo hay 3 vías',
-    items: [
-      { tone: 'rose', text: 'Sexual, sin condón' },
-      { tone: 'sky', text: 'Sanguínea, al compartir agujas' },
-      { tone: 'violet', text: 'De madre a hijo, sin tratamiento' },
-    ],
   },
   {
     art: FluidsArt,
@@ -68,13 +63,8 @@ const SLIDES: Slide[] = [
   {
     art: RiskArt,
     artBg: '#FFF7ED',
-    layout: 'flip',
+    layout: 'stack',
     title: '¿Cuándo hay riesgo?',
-    items: [
-      { tone: 'rose', text: 'Sexo sin condón' },
-      { tone: 'sky', text: 'Compartir agujas o jeringas' },
-      { tone: 'violet', text: 'Tatuajes sin material estéril' },
-    ],
   },
   {
     art: SafeArt,
@@ -221,7 +211,7 @@ function SlideBody({ slide }: { slide: Slide }) {
   if (slide.layout === 'cover') {
     return (
       <div className="flex min-h-full flex-col items-center justify-center gap-4 px-6 py-8" style={{ background: slide.artBg }}>
-        <div className="h-[34vh] w-full max-w-[520px] lg:h-[44vh]">
+        <div className="h-[34vh] w-full max-w-[760px] lg:h-[46vh]">
           <Art />
         </div>
         <div className="max-w-[680px]">
@@ -237,9 +227,11 @@ function SlideBody({ slide }: { slide: Slide }) {
         <div className="px-5 pb-2 pt-6 sm:px-10 lg:px-12 lg:pt-10">
           <SlideText slide={slide} />
         </div>
-        <div className="flex-1 p-2.5 sm:p-3 lg:min-h-0">
-          <div className="h-[40vh] overflow-hidden rounded-[22px] lg:h-full" style={{ background: slide.artBg }}>
-            <Art />
+        <div className="flex flex-1 flex-col p-2.5 sm:p-3 lg:min-h-0">
+          <div className="relative min-h-[54vh] flex-1 overflow-hidden rounded-[22px] lg:min-h-0" style={{ background: slide.artBg }}>
+            <div className="absolute inset-0">
+              <Art />
+            </div>
           </div>
         </div>
       </div>

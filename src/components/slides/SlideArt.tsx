@@ -108,10 +108,6 @@ function Ribbon({ id }: { id: string }) {
       <g clipPath={`url(#${id}-cut)`} fill="none" strokeWidth={RIBBON_W}>
         <path className="ribbon-front" d={RIBBON_FRONT} stroke={`url(#${id}-fill)`} pathLength={1} strokeDasharray="1" strokeDashoffset="0" />
       </g>
-      {/* Brillo que recorre la cinta */}
-      <g mask={`url(#${id}-mask)`}>
-        <rect className="ribbon-shine" x="-40" y="-60" width="34" height="440" fill="#FFFFFF" opacity="0.35" transform="rotate(20 100 150)" />
-      </g>
     </g>
   );
 }
@@ -119,16 +115,33 @@ function Ribbon({ id }: { id: string }) {
 function useRibbonIntro() {
   return () => {
     gsap.set('.ribbon-back, .ribbon-front', { attr: { 'stroke-dashoffset': 1 } });
-    gsap.set('.ribbon-shine', { x: -120 });
+    gsap.utils.toArray<SVGElement>('.ribbon-disc, .ribbon-wave').forEach((el) =>
+      gsap.set(el, { svgOrigin: `${el.getAttribute('cx')} ${el.getAttribute('cy')}` }),
+    );
+    gsap.set('.cover-chip', { svgOrigin: '0 0' });
     const intro = gsap.timeline({ delay: 0.3 });
     intro
       .to('.ribbon-back', { attr: { 'stroke-dashoffset': 0 }, duration: 1, ease: 'power2.inOut' })
       .to('.ribbon-front', { attr: { 'stroke-dashoffset': 0 }, duration: 1, ease: 'power2.inOut' }, '-=0.1')
-      .fromTo('.ribbon-glow', { scale: 0.6, opacity: 0, transformOrigin: '50% 50%' }, { scale: 1, opacity: 1, duration: 1, ease: 'power2.out' }, '-=0.6');
-    gsap.fromTo('.ribbon-shine', { x: -120 }, { x: 320, duration: 1.4, ease: 'power2.inOut', repeat: -1, repeatDelay: 2.6, delay: 2.4 });
+      .fromTo('.ribbon-disc', { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.9, ease: 'back.out(1.6)' }, 0)
+      .fromTo('.cover-chip', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, stagger: 0.15, ease: 'back.out(2)' }, 1.4);
+    // Ondas suaves que salen del lazo sin parar: no hay un final brusco
+    gsap.utils.toArray<SVGElement>('.ribbon-wave').forEach((el, i) => {
+      gsap.fromTo(el, { scale: 0.75, opacity: 0.5 }, { scale: 1.5, opacity: 0, duration: 4.5, ease: 'none', repeat: -1, delay: 1.2 + i * 1.5 });
+    });
+    gsap.utils.toArray<SVGElement>('.cover-chip-float').forEach((el, i) => {
+      gsap.to(el, { y: i % 2 ? 8 : -8, duration: 2.2 + i * 0.4, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2 });
+    });
     gsap.to('.ribbon-float', { y: -8, duration: 2.8, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2.4 });
   };
 }
+
+const COVER_CHIPS = [
+  { x: 20, y: 150, label: 'Infórmate', color: '#F43F5E' },
+  { x: 580, y: 150, label: 'Usa condón', color: '#0EA5E9' },
+  { x: 50, y: 380, label: 'Hazte la prueba', color: '#8B5CF6' },
+  { x: 550, y: 380, label: 'Cuídate', color: '#10B981' },
+];
 
 export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
   const id = `ribbon-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -139,11 +152,12 @@ export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
       // Las dos respuestas posibles se van turnando: hay que decidir
       gsap.set('.answer', { opacity: 0, y: 14 });
       gsap.to('.answer', { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: 'power2.out', delay: 1.6 });
+      gsap.set('.answer-m, .answer-r', { svgOrigin: '0 0' });
       const tl = gsap.timeline({ repeat: -1, delay: 2.4 });
-      tl.to('.answer-m', { scale: 1.08, duration: 0.4, ease: 'power2.out', transformOrigin: '50% 50%' })
+      tl.to('.answer-m', { scale: 1.08, duration: 0.4, ease: 'power2.out' })
         .to('.answer-r', { opacity: 0.45, duration: 0.4 }, '<')
         .to('.answer-m', { scale: 1, duration: 0.4, ease: 'power2.inOut' }, '+=0.9')
-        .to('.answer-r', { opacity: 1, scale: 1.08, duration: 0.4, ease: 'power2.out', transformOrigin: '50% 50%' }, '<')
+        .to('.answer-r', { opacity: 1, scale: 1.08, duration: 0.4, ease: 'power2.out' }, '<')
         .to('.answer-m', { opacity: 0.45, duration: 0.4 }, '<')
         .to('.answer-r', { scale: 1, duration: 0.4, ease: 'power2.inOut' }, '+=0.9')
         .to('.answer-m', { opacity: 1, duration: 0.4 }, '<');
@@ -159,12 +173,62 @@ export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
       rootRef={rootRef}
       defs={
         <radialGradient id={`${id}-glow`}>
-          <stop offset="0" stopColor="#FFFFFF" stopOpacity="1" />
-          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+          <stop offset="0" stopColor="#FFFFFF" />
+          <stop offset="0.7" stopColor="#FFFFFF" />
+          <stop offset="1" stopColor="#FFE4E6" />
         </radialGradient>
       }
     >
-      <circle className="ribbon-glow" cx="300" cy={cy} r={quiz ? 170 : 230} fill={`url(#${id}-glow)`} />
+      {[0, 1, 2].map((i) => (
+        <circle key={i} className="ribbon-wave" cx="300" cy={cy} r={quiz ? 140 : 170} fill="none" stroke="#FB7185" strokeWidth="3" opacity="0" />
+      ))}
+      <circle className="ribbon-disc" cx="300" cy={cy} r={quiz ? 140 : 170} fill={`url(#${id}-glow)`} />
+      {!quiz &&
+        COVER_CHIPS.map((c, i) => (
+          <g key={c.label} transform={`translate(${c.x} ${c.y})`}>
+            <g className="cover-chip-float">
+              <g className="cover-chip">
+                <circle r="44" fill="#FFFFFF" stroke={c.color} strokeWidth="3.5" />
+                <g transform="scale(1.9)">
+                  {i === 0 && (
+                    /* Información: círculo con una "i" */
+                    <g>
+                      <circle r="12" fill={c.color} />
+                      <circle cy="-6" r="2" fill="#FFFFFF" />
+                      <rect x="-1.8" y="-2" width="3.6" height="10" rx="1.8" fill="#FFFFFF" />
+                    </g>
+                  )}
+                  {i === 1 && (
+                    /* Condón en su sobre */
+                    <g>
+                      <rect x="-12" y="-12" width="24" height="24" rx="4" fill={c.color} />
+                      <circle r="6.5" fill="none" stroke="#FFFFFF" strokeWidth="2.4" />
+                      <circle r="2.6" fill="none" stroke="#FFFFFF" strokeWidth="1.2" />
+                    </g>
+                  )}
+                  {i === 2 && (
+                    /* Tubo de ensayo con una gota de sangre y un visto bueno */
+                    <g>
+                      <path d="M -5 -12 L -5 7 A 5 5 0 0 0 5 7 L 5 -12" fill="#FFFFFF" stroke={c.color} strokeWidth="2.4" strokeLinejoin="round" />
+                      <path d="M -3.8 0 L 3.8 0 L 3.8 7 A 3.8 3.8 0 0 1 -3.8 7 Z" fill="#E11D48" />
+                      <path d="M -7.5 -12 L 7.5 -12" stroke={c.color} strokeWidth="2.4" strokeLinecap="round" />
+                      <circle cx="9" cy="9" r="5.5" fill={c.color} />
+                      <path d="M 6.4 9 L 8.4 11 L 11.8 7.2" stroke="#FFFFFF" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                  )}
+                  {i === 3 && (
+                    /* Escudo con un visto bueno: protegerse */
+                    <g>
+                      <path d="M 0 -12 L 10 -8 L 10 0 C 10 7, 5 11, 0 13 C -5 11, -10 7, -10 0 L -10 -8 Z" fill={c.color} />
+                      <path d="M -4.5 0.5 L -1 4 L 5 -3" stroke="#FFFFFF" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+                    </g>
+                  )}
+                </g>
+                <Label x={0} y={72} text={c.label} size={20} color="#334155" />
+              </g>
+            </g>
+          </g>
+        ))}
       <g className="ribbon-float">
         <g transform={`translate(300 ${cy}) scale(${s}) translate(-100 -160)`}>
           <Ribbon id={id} />
@@ -172,13 +236,17 @@ export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
       </g>
       {quiz && (
         <g>
-          <g className="answer answer-m" transform="translate(196 448)">
-            <rect x="-92" y="-32" width="184" height="64" rx="20" fill="#0F172A" />
-            <Label x={0} y={9} text="MITO" color="#FFFFFF" size={24} />
+          <g transform="translate(196 448)">
+            <g className="answer answer-m">
+              <rect x="-92" y="-32" width="184" height="64" rx="20" fill="#0F172A" />
+              <Label x={0} y={9} text="MITO" color="#FFFFFF" size={24} />
+            </g>
           </g>
-          <g className="answer answer-r" transform="translate(404 448)">
-            <rect x="-92" y="-32" width="184" height="64" rx="20" fill="#10B981" />
-            <Label x={0} y={9} text="REALIDAD" color="#FFFFFF" size={24} />
+          <g transform="translate(404 448)">
+            <g className="answer answer-r">
+              <rect x="-92" y="-32" width="184" height="64" rx="20" fill="#10B981" />
+              <Label x={0} y={9} text="REALIDAD" color="#FFFFFF" size={24} />
+            </g>
           </g>
         </g>
       )}
@@ -196,7 +264,7 @@ const ROUTES = [
   { y: 410, color: '#8B5CF6', soft: '#EDE9FE', label: 'De madre a hijo' },
 ];
 const BADGE_X = 110;
-const CHEST = { x: 470, y: 486 };
+const CHEST = { x: 452, y: 440 };
 
 function RouteIcon({ i, color }: { i: number; color: string }) {
   if (i === 0) return <path d={HEART} transform="scale(2.3) translate(0 1)" fill={color} />;
@@ -227,6 +295,8 @@ export function RoutesArt() {
   const drops = useRef<(SVGGElement | null)[]>([]);
   const rootRef = useSceneAnimation(() => {
     // Cada vía, una tras otra: se ilumina, la gota viaja por el camino y llega al cuerpo
+    gsap.set('.badge', { svgOrigin: '0 0' });
+    gsap.set('[class^="ring-"]', { svgOrigin: `${CHEST.x} ${CHEST.y}` });
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.8 });
     tl.set('.route-line', { attr: { 'stroke-dashoffset': 1 }, opacity: 1 }, 0)
       .set('.route-drop', { opacity: 0 }, 0)
@@ -236,7 +306,7 @@ export function RoutesArt() {
       const path = paths.current[i];
       const drop = drops.current[i];
       tl.to(`.badge-${i}`, { opacity: 1, duration: 0.3 }, t)
-        .fromTo(`.badge-${i}`, { scale: 1 }, { scale: 1.12, duration: 0.25, yoyo: true, repeat: 1, ease: 'sine.inOut', transformOrigin: '50% 50%' }, t)
+        .fromTo(`.badge-${i}`, { scale: 1 }, { scale: 1.12, duration: 0.25, yoyo: true, repeat: 1, ease: 'sine.inOut' }, t)
         .to(`.route-line-${i}`, { attr: { 'stroke-dashoffset': 0 }, duration: 0.9, ease: 'power1.inOut' }, t + 0.1);
       if (path && drop) {
         tl.set(drop, { opacity: 1 }, t + 0.4).to(
@@ -246,7 +316,7 @@ export function RoutesArt() {
         );
         tl.to(drop, { opacity: 0, duration: 0.15 }, t + 1.5);
       }
-      tl.fromTo(`.ring-${i}`, { scale: 0.3, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.8, ease: 'power2.out', transformOrigin: '50% 50%' }, t + 1.5);
+      tl.fromTo(`.ring-${i}`, { scale: 0.3, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.8, ease: 'power2.out' }, t + 1.5);
     });
     tl.to('.route-line', { opacity: 0, duration: 0.5 }, 7.6);
   });
@@ -256,9 +326,9 @@ export function RoutesArt() {
   return (
     <Frame bottom label="El virus llega al cuerpo de una persona por tres caminos: la vía sexual, la sanguínea y de madre a hijo." rootRef={rootRef}>
       <Person
-        x={470}
-        y={580}
-        scale={1.15}
+        x={466}
+        y={566}
+        scale={1.5}
         flip
         shirtColor="#6366F1"
         shirtShadow="#4338CA"
@@ -358,8 +428,9 @@ export function FluidsArt() {
       .to('.no-head', { opacity: 1, duration: 0.4 }, '+=0.3')
       .to('.no-drop', { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: 'bounce.out' }, '-=0.1');
     // Los líquidos que sí transmiten llevan el virus dentro
-    gsap.to('.virus', { rotation: 360, duration: 6, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
-    gsap.fromTo('.virus', { scale: 0.85 }, { scale: 1.1, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 0.2, transformOrigin: '50% 50%' });
+    gsap.set('.virus', { svgOrigin: '0 0' });
+    gsap.to('.virus', { rotation: 360, duration: 6, repeat: -1, ease: 'none' });
+    gsap.fromTo('.virus', { scale: 0.85 }, { scale: 1.1, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 0.2 });
   });
 
   return (
@@ -449,6 +520,7 @@ function TattooPen() {
   );
 }
 
+const RISK_X = 170;
 const RISKS = [
   { y: 92, label: 'Sin condón', Icon: CondomPack },
   { y: 260, label: 'Agujas usadas', Icon: () => <g transform="rotate(-35) scale(0.9)"><Syringe /></g> },
@@ -459,14 +531,16 @@ export function RiskArt() {
   const rootRef = useSceneAnimation(() => {
     // Una situación a la vez: se destaca y de ella sale el virus
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.3 });
-    tl.set('.risk-item', { opacity: 0.35, scale: 0.92, transformOrigin: '50% 50%' })
-      .set('.risk-virus', { opacity: 0, x: 0, y: 0, scale: 0.4, rotation: 0, transformOrigin: '50% 50%' })
-      .set('.risk-ring', { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' });
+    // Pivote explícito en el centro de cada ícono (el cálculo automático lo desplazaba)
+    gsap.set('.risk-item, .risk-ring, .risk-virus', { svgOrigin: '0 0' });
+    tl.set('.risk-item', { opacity: 0.35, scale: 0.92 })
+      .set('.risk-virus', { opacity: 0, x: 0, y: 0, scale: 0.4, rotation: 0 })
+      .set('.risk-ring', { opacity: 0, scale: 0.6 });
     RISKS.forEach((_, i) => {
       const t = 0.3 + i * 2.2;
       tl.to(`.risk-item-${i}`, { opacity: 1, scale: 1.05, duration: 0.45, ease: 'back.out(2)' }, t)
-        .fromTo(`.risk-ring-${i}`, { opacity: 0.8, scale: 0.6 }, { opacity: 0, scale: 1.4, duration: 1, ease: 'power2.out' }, t + 0.2)
-        .to(`.risk-virus-${i}`, { opacity: 1, scale: 1, x: 290, y: -40, duration: 0.9, ease: 'power2.out' }, t + 0.35)
+        .fromTo(`.risk-ring-${i}`, { opacity: 0.8, scale: 0.9 }, { opacity: 0, scale: 1.35, duration: 1, ease: 'power2.out' }, t + 0.2)
+        .to(`.risk-virus-${i}`, { opacity: 1, scale: 1, x: 40, y: -60, duration: 0.9, ease: 'power2.out' }, t + 0.35)
         .to(`.risk-virus-${i}`, { rotation: 90, duration: 1.2, ease: 'none' }, t + 0.35)
         .to(`.risk-virus-${i}`, { opacity: 0, duration: 0.3 }, t + 1.7)
         .to(`.risk-item-${i}`, { opacity: 0.35, scale: 0.92, duration: 0.4 }, t + 1.9);
@@ -479,7 +553,7 @@ export function RiskArt() {
   return (
     <Frame label="Tres situaciones de riesgo se destacan una a una y de cada una sale un virus: sexo sin condón, agujas usadas y tatuajes sin esterilizar." rootRef={rootRef}>
       {RISKS.map(({ y, label, Icon }, i) => (
-        <g key={label} transform={`translate(170 ${y})`}>
+        <g key={label} transform={`translate(${RISK_X} ${y})`}>
           <circle className={`risk-ring risk-ring-${i}`} r="80" fill="none" stroke="#F43F5E" strokeWidth="5" opacity="0" />
           <g className={`risk-item risk-item-${i}`}>
             <circle r="74" fill="#FFFFFF" />
@@ -509,7 +583,8 @@ export function RiskArt() {
 
 export function SafeArt() {
   const rootRef = useSceneAnimation(() => {
-    gsap.fromTo('.safe-badge', { scale: 0, transformOrigin: '50% 50%' }, { scale: 1, duration: 0.6, ease: 'back.out(2.2)', delay: 0.4 });
+    gsap.set('.safe-badge, .safe-heart', { svgOrigin: '0 0' });
+    gsap.fromTo('.safe-badge', { scale: 0 }, { scale: 1, duration: 0.6, ease: 'back.out(2.2)', delay: 0.4 });
     // Corazones que salen de las manos unidas
     gsap.utils.toArray<SVGPathElement>('.safe-heart').forEach((el, i) => {
       gsap.fromTo(
@@ -522,7 +597,6 @@ export function SafeArt() {
           ],
           repeat: -1,
           delay: 0.8 + i * 0.6,
-          transformOrigin: '50% 50%',
         },
       );
     });
@@ -538,8 +612,8 @@ export function SafeArt() {
         <Label x={18} y={9} text="Sin riesgo" color="#FFFFFF" size={26} />
       </g>
       {[0, 1, 2, 3, 4].map((i) => (
-        <g key={i} transform={`translate(${300 + (i - 2) * 6} 390)`}>
-          <path className="safe-heart" d={HEART} transform={`scale(${1.2 + (i % 2) * 0.4})`} fill={i % 2 ? '#F43F5E' : '#FB7185'} opacity="0" />
+        <g key={i} transform={`translate(${300 + (i - 2) * 6} 390) scale(${1.2 + (i % 2) * 0.4})`}>
+          <path className="safe-heart" d={HEART} fill={i % 2 ? '#F43F5E' : '#FB7185'} opacity="0" />
         </g>
       ))}
       <Person
@@ -607,7 +681,7 @@ export function FactorsArt() {
   const rootRef = useSceneAnimation(() => {
     const o = { svgOrigin: `${C.x} ${C.y}` };
     const tl = gsap.timeline({ repeat: -1 });
-    tl.set('.chip-up, .chip-down', { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' })
+    tl.set('.chip-up, .chip-down', { opacity: 0, scale: 0.6, svgOrigin: '0 0' })
       .set('.level-high, .level-low', { opacity: 0 })
       .set('.needle', { rotation: 0, ...o })
       .to('.chip-up', { opacity: 1, scale: 1, duration: 0.4, stagger: 0.3, ease: 'back.out(2.2)' }, 0.4)
@@ -624,6 +698,7 @@ export function FactorsArt() {
 
   return (
     <Frame label="Un medidor de riesgo: la aguja sube con otras ITS, heridas o no hacerse la prueba, y baja con condón, tratamiento y la prueba." rootRef={rootRef}>
+      <g transform="translate(300 268) scale(1.38) translate(-300 -280)">
       <path d={arc(180, 240)} stroke="#10B981" strokeWidth="40" fill="none" />
       <path d={arc(240, 300)} stroke="#F59E0B" strokeWidth="40" fill="none" />
       <path d={arc(300, 360)} stroke="#F43F5E" strokeWidth="40" fill="none" />
@@ -643,6 +718,7 @@ export function FactorsArt() {
       {DOWN.map((t, i) => (
         <Chip key={t} x={C.x + (i - 1) * 168} text={`↓ ${t}`} fill="#10B981" className="chip-down" />
       ))}
+      </g>
     </Frame>
   );
 }
