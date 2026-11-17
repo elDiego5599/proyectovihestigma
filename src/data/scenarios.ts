@@ -89,4 +89,24 @@ export const SCENARIOS: ScenarioMeta[] = [
     feedback:
       'El VIH es el virus; el SIDA es la etapa avanzada que puede aparecer años después si no hay tratamiento. Con tratamiento antirretroviral, una persona con VIH puede no desarrollar SIDA nunca y vivir una vida larga y sana.',
   },
+  {
+    id: 'tattoo',
+    code: '09',
+    title: 'Tatuajes y piercings',
+    statement:
+      'Hacerse un tatuaje o un piercing con agujas o equipo que no está esterilizado puede transmitir el VIH.',
+    answer: 'realidad',
+    feedback:
+      'Es una situación de riesgo por vía sanguínea: una aguja usada puede llevar sangre con el virus. Exige siempre agujas nuevas, empaques sellados y material esterilizado.',
+  },
+  {
+    id: 'anyone',
+    code: '10',
+    title: 'El VIH no distingue',
+    statement:
+      'El VIH solo afecta a ciertos grupos de personas; si no perteneces a ellos, no corres ningún riesgo.',
+    answer: 'mito',
+    feedback:
+      'El VIH no distingue edad, género, orientación sexual ni profesión. El riesgo depende de las prácticas, no de quién eres. Por eso todos podemos cuidarnos y nadie debe ser discriminado.',
+  },
 ];
