@@ -9,6 +9,8 @@ import { MotherChildScenario } from './scenarios/MotherChildScenario';
 import { HygieneScenario } from './scenarios/HygieneScenario';
 import { AppearanceScenario } from './scenarios/AppearanceScenario';
 import { HivAidsScenario } from './scenarios/HivAidsScenario';
+import { TattooScenario } from './scenarios/TattooScenario';
+import { AnyoneScenario } from './scenarios/AnyoneScenario';
 
 const SCENE_ART = [
   MosquitoScenario,
@@ -19,6 +21,8 @@ const SCENE_ART = [
   HygieneScenario,
   AppearanceScenario,
   HivAidsScenario,
+  TattooScenario,
+  AnyoneScenario,
 ];
 
 function ArrowIcon() {
@@ -99,7 +103,7 @@ function loadProgress(): Progress {
   return empty;
 }
 
-export function SimulationScreen() {
+export function SimulationScreen({ onPresentation }: { onPresentation?: () => void }) {
   const [initial] = useState(loadProgress);
   const [index, setIndex] = useState(initial.index);
   const [answer, setAnswer] = useState<Answer | null>(initial.answer);
@@ -203,7 +207,23 @@ export function SimulationScreen() {
         </div>
 
         {/* Lado derecho: botón reiniciar */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
+          {onPresentation && (
+            <motion.button
+              type="button"
+              onClick={onPresentation}
+              whileTap={{ scale: 0.94 }}
+              transition={{ type: 'spring', duration: 0.22, bounce: 0 }}
+              aria-label="Volver a la presentación"
+              className="flex h-9 items-center gap-2 rounded-xl border border-[rgba(15,23,42,0.14)] bg-white px-2.5 sm:px-3.5 text-[12.5px] font-bold text-[#334155] shadow-xs transition-colors hover:border-[#0F172A] hover:text-[#0F172A]"
+            >
+              <svg width="15" height="15" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <rect x="2.5" y="4" width="15" height="10" rx="2" stroke="currentColor" strokeWidth="2" />
+                <path d="M7 17.5H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              <span className="hidden sm:inline">Presentación</span>
+            </motion.button>
+          )}
           <motion.button
             type="button"
             onClick={handleRestart}
