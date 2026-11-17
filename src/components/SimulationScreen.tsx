@@ -239,30 +239,45 @@ export function SimulationScreen({ onPresentation }: { onPresentation?: () => vo
       </header>
 
       {finished ? (
-        <main className="flex min-h-0 flex-1 items-center justify-center px-6">
+        <main className="flex min-h-0 flex-1 items-start justify-center overflow-y-auto px-4 sm:items-center">
           <motion.div
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: 'spring', duration: 0.45, bounce: 0 }}
-            className="w-full max-w-[520px] rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white p-10 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
+            className="my-6 w-full max-w-[520px] rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white p-6 sm:p-8 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
           >
-            <p className="text-[13px] font-bold uppercase tracking-[0.08em] text-[#64748B]">Tu resultado</p>
-            <p className="mt-3 text-[64px] font-black leading-none tracking-[-0.04em] text-[#0F172A]">
-              {score}
-              <span className="text-[#94A3B8]">/{SCENARIOS.length}</span>
+            <p className="text-[34px] font-black leading-tight tracking-[-0.03em] text-[#0F172A]">
+              Acertaste {score} de {SCENARIOS.length}
             </p>
-            <p className="mx-auto mt-4 max-w-[380px] text-pretty text-[16px] font-medium leading-[1.45] text-[#334155]">
+            <p className="mx-auto mt-2 max-w-[380px] text-pretty text-[15px] font-medium leading-[1.45] text-[#64748B]">
               {score === SCENARIOS.length
-                ? 'Perfecto. Conoces bien cómo se transmite y cómo no se transmite el VIH.'
-                : score >= SCENARIOS.length / 2
-                  ? 'Muy bien. Repasa las que fallaste: la información correcta frena el estigma.'
-                  : 'Buen comienzo. Vuelve a intentarlo: entender el VIH ayuda a cuidarte y a no discriminar.'}
+                ? '¡Perfecto! Conoces bien el VIH.'
+                : 'Revisa las marcadas en rojo.'}
             </p>
-            <div className="mt-6 flex justify-center gap-2">
-              {results.map((ok, i) => (
-                <span key={i} className={`h-2.5 w-8 rounded-full ${ok ? 'bg-[#10B981]' : 'bg-[#F43F5E]'}`} />
-              ))}
-            </div>
+            <ul className="mt-6 grid gap-1.5 text-left">
+              {SCENARIOS.map((s, i) => {
+                const ok = results[i];
+                return (
+                  <li
+                    key={s.id}
+                    className={`flex items-center gap-3 rounded-xl px-3 py-2 ${ok ? 'bg-[#ECFDF5]' : 'bg-[#FEF2F2]'}`}
+                  >
+                    <span
+                      aria-label={ok ? 'Correcta' : 'Incorrecta'}
+                      className={`grid h-6 w-6 flex-none place-items-center rounded-full text-[13px] font-black text-white ${ok ? 'bg-[#10B981]' : 'bg-[#EF4444]'}`}
+                    >
+                      {ok ? '✓' : '✗'}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold text-[#0F172A]">{s.title}</span>
+                    <span
+                      className={`flex-none rounded-full px-2.5 py-0.5 text-[11.5px] font-extrabold uppercase tracking-[0.04em] ${s.answer === 'mito' ? 'bg-[#EDE9FE] text-[#6D28D9]' : 'bg-[#FFEDD5] text-[#C2410C]'}`}
+                    >
+                      {s.answer === 'mito' ? 'Mito' : 'Realidad'}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
             <motion.button
               type="button"
               onClick={handleRestart}
