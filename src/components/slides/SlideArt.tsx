@@ -6,52 +6,60 @@ import { SceneRoot, useSceneAnimation } from '../art/Stage';
 const W = 600;
 const H = 520;
 
-/** Lienzo de las ilustraciones de las diapositivas: casi cuadrado, esquinas redondeadas. */
-function Frame({ label, rootRef, children, defs }: {
+/**
+ * Lienzo de las ilustraciones. No dibuja fondo propio: el color lo pone el panel,
+ * así la ilustración se funde con él sin bordes ni recortes.
+ */
+function Frame({ label, rootRef, children, defs, bottom = false }: {
   label: string;
+  /** Pega el dibujo al borde inferior del panel: los cuerpos se cortan en el borde, no en el aire. */
+  bottom?: boolean;
   rootRef: RefObject<HTMLDivElement | null>;
   children: ReactNode;
   defs?: ReactNode;
 }) {
-  const clip = `slide-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   return (
     <SceneRoot rootRef={rootRef}>
-      <svg viewBox={`0 0 ${W} ${H}`} className="h-full w-full select-none" role="img" aria-label={label} preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <clipPath id={clip}>
-            <rect width={W} height={H} rx="28" />
-          </clipPath>
-          {defs}
-        </defs>
-        <g clipPath={`url(#${clip})`}>{children}</g>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="h-full w-full select-none"
+        style={{ overflow: 'visible' }}
+        role="img"
+        aria-label={label}
+        preserveAspectRatio={bottom ? 'xMidYMax meet' : 'xMidYMid meet'}
+      >
+        {defs && <defs>{defs}</defs>}
+        {children}
       </svg>
     </SceneRoot>
+  );
+}
+
+/** Suelo que se extiende más allá del lienzo para cubrir todo el panel. */
+function Ground({ y, fill, edge }: { y: number; fill: string; edge: string }) {
+  return (
+    <g>
+      <rect x={-1200} y={y} width={3000} height={1000} fill={fill} />
+      <rect x={-1200} y={y - 6} width={3000} height={8} fill={edge} />
+    </g>
   );
 }
 
 const HEART = 'M 0 8 C -14 -2, -12 -16, 0 -8 C 12 -16, 14 -2, 0 8 Z';
 const DROP = 'M 0 -9 C 4 -3, 7 1, 7 5 A 7 7 0 0 1 -7 5 C -7 1, -4 -3, 0 -9 Z';
 
-function Pill({ x, y, text, fill, color = '#FFFFFF', className, size = 16 }: {
+function Label({ x, y, text, color = '#0F172A', size = 17, className }: {
   x: number;
   y: number;
   text: string;
-  fill: string;
   color?: string;
-  className?: string;
   size?: number;
+  className?: string;
 }) {
-  const w = text.length * size * 0.6 + size * 2;
-  const h = size * 2.3;
   return (
-    <g transform={`translate(${x} ${y})`}>
-      <g className={className}>
-        <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={h / 2} fill={fill} />
-        <text y={size * 0.36} textAnchor="middle" fontSize={size} fontWeight="800" fill={color} fontFamily="inherit">
-          {text}
-        </text>
-      </g>
-    </g>
+    <text className={className} x={x} y={y} textAnchor="middle" fontSize={size} fontWeight="800" fill={color} fontFamily="inherit">
+      {text}
+    </text>
   );
 }
 
@@ -59,142 +67,120 @@ function Pill({ x, y, text, fill, color = '#FFFFFF', className, size = 16 }: {
 /* Lazo rojo                                                           */
 /* ------------------------------------------------------------------ */
 
-function Ribbon({ gradId }: { gradId: string }) {
-  // Coordenadas locales: el cruce de las cintas está en (100, 140)
+// Línea central del lazo (caja local 200 × 320, cruce de las cintas en (100, 165)).
+// La cinta de atrás sube desde la cola izquierda y forma el lado derecho del lazo;
+// la de adelante baja por el lado izquierdo, cruza por encima y termina en la cola derecha.
+const RIBBON_BACK = 'M 40 312 L 100 165 C 136 77, 152 30, 100 30';
+const RIBBON_FRONT = 'M 100 30 C 48 30, 64 77, 100 165 L 160 312';
+const RIBBON_W = 38;
+
+function Ribbon({ id }: { id: string }) {
   return (
     <g>
-      <path
-        className="ribbon-a"
-        d="M 52 246 L 100 140 C 124 96 142 62 122 36 C 110 19 90 19 78 36"
-        fill="none"
-        stroke={`url(#${gradId})`}
-        strokeWidth="30"
-        strokeLinejoin="round"
-        pathLength={1}
-        strokeDasharray="1"
-        strokeDashoffset="0"
-      />
-      {/* Sombra donde una cinta pasa sobre la otra */}
-      <path
-        className="ribbon-b"
-        d="M 78 36 C 58 62 76 96 100 140 L 148 246"
-        fill="none"
-        stroke="#7F1D1D"
-        strokeOpacity="0.28"
-        strokeWidth="34"
-        transform="translate(3 2)"
-        pathLength={1}
-        strokeDasharray="1"
-        strokeDashoffset="0"
-      />
-      <path
-        className="ribbon-b"
-        d="M 78 36 C 58 62 76 96 100 140 L 148 246"
-        fill="none"
-        stroke={`url(#${gradId})`}
-        strokeWidth="30"
-        strokeLinejoin="round"
-        pathLength={1}
-        strokeDasharray="1"
-        strokeDashoffset="0"
-      />
-      {/* Brillo */}
-      <path
-        className="ribbon-shine"
-        d="M 63 236 L 104 146"
-        stroke="#FFFFFF"
-        strokeOpacity="0.35"
-        strokeWidth="5"
-        strokeLinecap="round"
-      />
+      <defs>
+        {/* Un único degradado en coordenadas del lazo: sin cortes donde se unen las cintas */}
+        <linearGradient id={`${id}-fill`} gradientUnits="userSpaceOnUse" x1="40" y1="20" x2="160" y2="310">
+          <stop offset="0" stopColor="#FB7185" />
+          <stop offset="0.45" stopColor="#E11D48" />
+          <stop offset="1" stopColor="#BE123C" />
+        </linearGradient>
+        {/* Las colas terminan con un corte recto */}
+        <clipPath id={`${id}-cut`}>
+          <rect x="-60" y="-40" width="320" height="332" />
+        </clipPath>
+        <mask id={`${id}-back-mask`} maskUnits="userSpaceOnUse" x="-60" y="-40" width="320" height="400">
+          <path d={RIBBON_BACK} fill="none" stroke="#FFFFFF" strokeWidth={RIBBON_W} clipPath={`url(#${id}-cut)`} />
+        </mask>
+        <mask id={`${id}-mask`} maskUnits="userSpaceOnUse" x="-60" y="-40" width="320" height="400">
+          <g clipPath={`url(#${id}-cut)`} fill="none" stroke="#FFFFFF" strokeWidth={RIBBON_W}>
+            <path d={RIBBON_BACK} />
+            <path d={RIBBON_FRONT} />
+          </g>
+        </mask>
+      </defs>
+      <g clipPath={`url(#${id}-cut)`} fill="none" strokeWidth={RIBBON_W} stroke={`url(#${id}-fill)`}>
+        <path className="ribbon-back" d={RIBBON_BACK} pathLength={1} strokeDasharray="1" strokeDashoffset="0" />
+      </g>
+      {/* Sombra de la cinta de adelante, solo sobre la de atrás */}
+      <g mask={`url(#${id}-back-mask)`}>
+        <path className="ribbon-front" d={RIBBON_FRONT} fill="none" stroke="#4C0519" strokeOpacity="0.3" strokeWidth={RIBBON_W + 8} transform="translate(4 3)" pathLength={1} strokeDasharray="1" strokeDashoffset="0" />
+      </g>
+      <g clipPath={`url(#${id}-cut)`} fill="none" strokeWidth={RIBBON_W}>
+        <path className="ribbon-front" d={RIBBON_FRONT} stroke={`url(#${id}-fill)`} pathLength={1} strokeDasharray="1" strokeDashoffset="0" />
+      </g>
+      {/* Brillo que recorre la cinta */}
+      <g mask={`url(#${id}-mask)`}>
+        <rect className="ribbon-shine" x="-40" y="-60" width="34" height="440" fill="#FFFFFF" opacity="0.35" transform="rotate(20 100 150)" />
+      </g>
     </g>
   );
 }
 
-export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
-  const gradId = `ribbon-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
-  const rootRef = useSceneAnimation(() => {
-    gsap.set('.ribbon-a, .ribbon-b', { attr: { 'stroke-dashoffset': 1 } });
-    gsap.set('.ribbon-shine', { opacity: 0 });
-    const intro = gsap.timeline({ delay: 0.25 });
+function useRibbonIntro() {
+  return () => {
+    gsap.set('.ribbon-back, .ribbon-front', { attr: { 'stroke-dashoffset': 1 } });
+    gsap.set('.ribbon-shine', { x: -120 });
+    const intro = gsap.timeline({ delay: 0.3 });
     intro
-      .to('.ribbon-a', { attr: { 'stroke-dashoffset': 0 }, duration: 1.1, ease: 'power2.inOut' })
-      .to('.ribbon-b', { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power2.out' }, '-=0.15')
-      .to('.ribbon-shine', { opacity: 1, duration: 0.4 })
-      .fromTo('.ribbon', { scale: 0.96 }, { scale: 1, duration: 0.6, ease: 'back.out(3)', transformOrigin: '50% 50%' }, '<');
+      .to('.ribbon-back', { attr: { 'stroke-dashoffset': 0 }, duration: 1, ease: 'power2.inOut' })
+      .to('.ribbon-front', { attr: { 'stroke-dashoffset': 0 }, duration: 1, ease: 'power2.inOut' }, '-=0.1')
+      .fromTo('.ribbon-glow', { scale: 0.6, opacity: 0, transformOrigin: '50% 50%' }, { scale: 1, opacity: 1, duration: 1, ease: 'power2.out' }, '-=0.6');
+    gsap.fromTo('.ribbon-shine', { x: -120 }, { x: 320, duration: 1.4, ease: 'power2.inOut', repeat: -1, repeatDelay: 2.6, delay: 2.4 });
+    gsap.to('.ribbon-float', { y: -8, duration: 2.8, repeat: -1, yoyo: true, ease: 'sine.inOut', delay: 2.4 });
+  };
+}
 
-    gsap.to('.ribbon-float', { y: -10, rotation: 3, duration: 2.6, repeat: -1, yoyo: true, ease: 'sine.inOut', svgOrigin: '300 270' });
-    gsap.fromTo(
-      '.halo',
-      { scale: 0.7, opacity: 0.55, transformOrigin: '50% 50%' },
-      { scale: 1.5, opacity: 0, duration: 3.6, repeat: -1, stagger: 1.2, ease: 'sine.out' },
-    );
-    gsap.utils.toArray<SVGGElement>('.float-heart').forEach((el, i) => {
-      gsap.fromTo(
-        el,
-        { y: 0, opacity: 0, scale: 0.6 },
-        {
-          keyframes: [
-            { opacity: 1, scale: 1, duration: 0.6 },
-            { y: -300, x: i % 2 ? 24 : -24, opacity: 0, duration: 4.2, ease: 'sine.in' },
-          ],
-          repeat: -1,
-          delay: i * 0.9,
-          transformOrigin: '50% 50%',
-        },
-      );
-    });
+export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
+  const id = `ribbon-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const intro = useRibbonIntro();
+  const rootRef = useSceneAnimation(() => {
+    intro();
     if (quiz) {
-      const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.4, delay: 1.6 });
-      tl.set('.quiz-pill', { scale: 0, opacity: 0, transformOrigin: '50% 50%' })
-        .to('.quiz-m', { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(2.4)' })
-        .to('.quiz-r', { scale: 1, opacity: 1, duration: 0.5, ease: 'back.out(2.4)' }, '+=0.5')
-        .to('.quiz-m', { y: -8, duration: 0.35, yoyo: true, repeat: 3, ease: 'sine.inOut' }, '+=0.3')
-        .to('.quiz-r', { y: -8, duration: 0.35, yoyo: true, repeat: 3, ease: 'sine.inOut' })
-        .to('.quiz-pill', { scale: 0.6, opacity: 0, duration: 0.3 }, '+=0.6');
-      gsap.to('.qmark', { y: -12, duration: 1.4, repeat: -1, yoyo: true, stagger: 0.4, ease: 'sine.inOut' });
+      // Las dos respuestas posibles se van turnando: hay que decidir
+      gsap.set('.answer', { opacity: 0, y: 14 });
+      gsap.to('.answer', { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: 'power2.out', delay: 1.6 });
+      const tl = gsap.timeline({ repeat: -1, delay: 2.4 });
+      tl.to('.answer-m', { scale: 1.08, duration: 0.4, ease: 'power2.out', transformOrigin: '50% 50%' })
+        .to('.answer-r', { opacity: 0.45, duration: 0.4 }, '<')
+        .to('.answer-m', { scale: 1, duration: 0.4, ease: 'power2.inOut' }, '+=0.9')
+        .to('.answer-r', { opacity: 1, scale: 1.08, duration: 0.4, ease: 'power2.out', transformOrigin: '50% 50%' }, '<')
+        .to('.answer-m', { opacity: 0.45, duration: 0.4 }, '<')
+        .to('.answer-r', { scale: 1, duration: 0.4, ease: 'power2.inOut' }, '+=0.9')
+        .to('.answer-m', { opacity: 1, duration: 0.4 }, '<');
     }
   });
 
+  const cy = quiz ? 214 : 262;
+  const s = quiz ? 1.05 : 1.4;
+
   return (
     <Frame
-      label={quiz ? 'Lazo rojo con las palabras Mito y Realidad a cada lado.' : 'Lazo rojo, símbolo de la lucha contra el VIH, dibujándose y flotando.'}
+      label={quiz ? 'Lazo rojo y las dos respuestas posibles: mito o realidad.' : 'Lazo rojo, símbolo de la respuesta al VIH, dibujándose.'}
       rootRef={rootRef}
       defs={
-        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#FB7185" />
-          <stop offset="0.55" stopColor="#E11D48" />
-          <stop offset="1" stopColor="#BE123C" />
-        </linearGradient>
+        <radialGradient id={`${id}-glow`}>
+          <stop offset="0" stopColor="#FFFFFF" stopOpacity="1" />
+          <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+        </radialGradient>
       }
     >
-      <rect width={W} height={H} fill="#FFF1F2" />
-      <circle cx="520" cy="70" r="120" fill="#FFE4E6" />
-      <circle cx="70" cy="470" r="140" fill="#FFE4E6" />
-      <g transform="translate(300 270)">
-        {[0, 1, 2].map((i) => (
-          <circle key={i} className="halo" r="150" fill="none" stroke="#FDA4AF" strokeWidth="3" />
-        ))}
-        <circle r="150" fill="#FFFFFF" opacity="0.7" />
-      </g>
-      {[150, 230, 380, 450, 190, 410].map((x, i) => (
-        <g key={i} transform={`translate(${x} ${470 - (i % 3) * 20}) scale(${1 + (i % 2) * 0.5})`}>
-          <path className="float-heart" d={HEART} fill={i % 2 ? '#FB7185' : '#FDA4AF'} opacity="0" />
-        </g>
-      ))}
+      <circle className="ribbon-glow" cx="300" cy={cy} r={quiz ? 170 : 230} fill={`url(#${id}-glow)`} />
       <g className="ribbon-float">
-        <g className="ribbon" transform="translate(300 270) scale(1.45) translate(-100 -132)">
-          <Ribbon gradId={gradId} />
+        <g transform={`translate(300 ${cy}) scale(${s}) translate(-100 -160)`}>
+          <Ribbon id={id} />
         </g>
       </g>
       {quiz && (
-        <>
-          <text className="qmark" x="90" y="120" fontSize="64" fontWeight="900" fill="#FDA4AF" fontFamily="inherit">?</text>
-          <text className="qmark" x="490" y="470" fontSize="52" fontWeight="900" fill="#FDA4AF" fontFamily="inherit">?</text>
-          <text className="qmark" x="500" y="150" fontSize="40" fontWeight="900" fill="#FECDD3" fontFamily="inherit">?</text>
-          <Pill x={140} y={360} text="MITO" fill="#0F172A" className="quiz-pill quiz-m" size={22} />
-          <Pill x={455} y={210} text="REALIDAD" fill="#10B981" className="quiz-pill quiz-r" size={22} />
-        </>
+        <g>
+          <g className="answer answer-m" transform="translate(196 448)">
+            <rect x="-92" y="-32" width="184" height="64" rx="20" fill="#0F172A" />
+            <Label x={0} y={9} text="MITO" color="#FFFFFF" size={24} />
+          </g>
+          <g className="answer answer-r" transform="translate(404 448)">
+            <rect x="-92" y="-32" width="184" height="64" rx="20" fill="#10B981" />
+            <Label x={0} y={9} text="REALIDAD" color="#FFFFFF" size={24} />
+          </g>
+        </g>
       )}
     </Frame>
   );
@@ -205,12 +191,12 @@ export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
 /* ------------------------------------------------------------------ */
 
 const ROUTES = [
-  { y: 100, color: '#F43F5E', soft: '#FFE4E6', label: 'Sexual' },
-  { y: 250, color: '#0EA5E9', soft: '#E0F2FE', label: 'Sanguínea' },
-  { y: 400, color: '#8B5CF6', soft: '#EDE9FE', label: 'Maternoinfantil' },
+  { y: 110, color: '#F43F5E', soft: '#FFE4E6', label: 'Sexual' },
+  { y: 260, color: '#0EA5E9', soft: '#E0F2FE', label: 'Sanguínea' },
+  { y: 410, color: '#8B5CF6', soft: '#EDE9FE', label: 'De madre a hijo' },
 ];
-const BADGE_X = 100;
-const CHEST = { x: 440, y: 484 };
+const BADGE_X = 110;
+const CHEST = { x: 470, y: 486 };
 
 function RouteIcon({ i, color }: { i: number; color: string }) {
   if (i === 0) return <path d={HEART} transform="scale(2.3) translate(0 1)" fill={color} />;
@@ -224,15 +210,14 @@ function RouteIcon({ i, color }: { i: number; color: string }) {
         <line x1="0" y1="14" x2="0" y2="32" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" />
       </g>
     );
+  // Madre embarazada con el bebé dentro de la barriga
   return (
-    <g>
-      <path d="M -6 -22 C -6 -32, 6 -32, 6 -22 Z" fill="#FBBF24" />
-      <rect x="-12" y="-22" width="24" height="7" rx="3" fill={color} />
-      <rect x="-12" y="-15" width="24" height="36" rx="9" fill="#FFFFFF" stroke={color} strokeWidth="3" />
-      <rect x="-9" y="2" width="18" height="16" rx="6" fill="#F5F5F4" />
-      {[-6, 0, 6].map((y) => (
-        <line key={y} x1="4" y1={y} x2="9" y2={y} stroke={color} strokeWidth="2" strokeLinecap="round" />
-      ))}
+    <g transform="translate(-4 2)">
+      <circle cx="-4" cy="-24" r="9" fill={color} />
+      <path d="M -14 -12 C -16 2, -16 16, -12 30 L 4 30 C 6 22, 22 18, 21 4 C 20 -8, 6 -13, -14 -12 Z" fill={color} />
+      <circle cx="9" cy="5" r="9" fill="#FFFFFF" />
+      <circle cx="11" cy="2" r="3.4" fill={color} />
+      <path d="M 6 6 C 6 11, 12 12, 14 8" stroke={color} strokeWidth="3" fill="none" strokeLinecap="round" />
     </g>
   );
 }
@@ -241,35 +226,39 @@ export function RoutesArt() {
   const paths = useRef<(SVGPathElement | null)[]>([]);
   const drops = useRef<(SVGGElement | null)[]>([]);
   const rootRef = useSceneAnimation(() => {
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.5 });
-    tl.set('.route-line', { attr: { 'stroke-dashoffset': 1 }, opacity: 1 }, 0).set('.route-drop', { opacity: 0 }, 0);
+    // Cada vía, una tras otra: se ilumina, la gota viaja por el camino y llega al cuerpo
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.8 });
+    tl.set('.route-line', { attr: { 'stroke-dashoffset': 1 }, opacity: 1 }, 0)
+      .set('.route-drop', { opacity: 0 }, 0)
+      .set('.badge', { opacity: 0.45 }, 0);
     ROUTES.forEach((_, i) => {
-      const t = 0.3 + i * 2.1;
+      const t = 0.4 + i * 2.2;
       const path = paths.current[i];
       const drop = drops.current[i];
-      tl.to(`.badge-${i}`, { scale: 1.14, duration: 0.22, yoyo: true, repeat: 1, ease: 'sine.inOut', transformOrigin: '50% 50%' }, t)
-        .to(`.route-line-${i}`, { attr: { 'stroke-dashoffset': 0 }, duration: 0.8, ease: 'power1.inOut' }, t);
+      tl.to(`.badge-${i}`, { opacity: 1, duration: 0.3 }, t)
+        .fromTo(`.badge-${i}`, { scale: 1 }, { scale: 1.12, duration: 0.25, yoyo: true, repeat: 1, ease: 'sine.inOut', transformOrigin: '50% 50%' }, t)
+        .to(`.route-line-${i}`, { attr: { 'stroke-dashoffset': 0 }, duration: 0.9, ease: 'power1.inOut' }, t + 0.1);
       if (path && drop) {
-        tl.set(drop, { opacity: 1 }, t + 0.5).to(
+        tl.set(drop, { opacity: 1 }, t + 0.4).to(
           drop,
-          { motionPath: { path, align: path, alignOrigin: [0.5, 0.5] }, duration: 1, ease: 'power1.inOut' },
-          t + 0.5,
+          { motionPath: { path, align: path, alignOrigin: [0.5, 0.5] }, duration: 1.1, ease: 'power1.inOut' },
+          t + 0.4,
         );
         tl.to(drop, { opacity: 0, duration: 0.15 }, t + 1.5);
       }
-      tl.fromTo(`.ring-${i}`, { scale: 0.3, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.8, ease: 'power2.out', transformOrigin: '50% 50%' }, t + 1.45);
+      tl.fromTo(`.ring-${i}`, { scale: 0.3, opacity: 0.9 }, { scale: 1.6, opacity: 0, duration: 0.8, ease: 'power2.out', transformOrigin: '50% 50%' }, t + 1.5);
     });
-    tl.to('.route-line', { opacity: 0, duration: 0.5 }, 7.2);
+    tl.to('.route-line', { opacity: 0, duration: 0.5 }, 7.6);
   });
 
+  const d = (i: number, y: number) => `M ${BADGE_X + 52} ${y} C ${300} ${y}, ${320} ${CHEST.y - 40 + i * 16}, ${CHEST.x} ${CHEST.y}`;
+
   return (
-    <Frame label="Tres vías llegan al cuerpo de una persona: sexual, sanguínea y maternoinfantil." rootRef={rootRef}>
-      <rect width={W} height={H} fill="#F8FAFC" />
-      <circle cx="470" cy="190" r="170" fill="#EEF2FF" />
+    <Frame bottom label="El virus llega al cuerpo de una persona por tres caminos: la vía sexual, la sanguínea y de madre a hijo." rootRef={rootRef}>
       <Person
-        x={455}
-        y={590}
-        scale={1.2}
+        x={470}
+        y={580}
+        scale={1.15}
         flip
         shirtColor="#6366F1"
         shirtShadow="#4338CA"
@@ -281,21 +270,13 @@ export function RoutesArt() {
       />
       {ROUTES.map((r, i) => (
         <g key={r.label}>
-          <path
-            d={`M ${BADGE_X + 48} ${r.y} C ${290} ${r.y}, ${300} ${CHEST.y - 30 + i * 12}, ${CHEST.x} ${CHEST.y}`}
-            fill="none"
-            stroke={r.color}
-            strokeOpacity="0.25"
-            strokeWidth="4"
-            strokeDasharray="2 10"
-            strokeLinecap="round"
-          />
+          <path d={d(i, r.y)} fill="none" stroke={r.color} strokeOpacity="0.22" strokeWidth="4" strokeDasharray="2 10" strokeLinecap="round" />
           <path
             ref={(el) => {
               paths.current[i] = el;
             }}
             className={`route-line route-line-${i}`}
-            d={`M ${BADGE_X + 48} ${r.y} C ${290} ${r.y}, ${300} ${CHEST.y - 30 + i * 12}, ${CHEST.x} ${CHEST.y}`}
+            d={d(i, r.y)}
             fill="none"
             stroke={r.color}
             strokeWidth="5"
@@ -312,17 +293,18 @@ export function RoutesArt() {
             className="route-drop"
             opacity="0"
           >
-            <path d={DROP} transform="scale(1.4)" fill={r.color} stroke="#FFFFFF" strokeWidth="1.5" />
+            <circle r="17" fill={r.color} opacity="0.25" />
+            <g transform="scale(1.15)">
+              <VirusShape color={r.color} />
+            </g>
           </g>
           <g transform={`translate(${BADGE_X} ${r.y})`}>
-            <g className={`badge-${i}`}>
-              <circle r="46" fill="#FFFFFF" stroke={r.color} strokeWidth="4" />
-              <circle r="36" fill={r.soft} />
+            <g className={`badge badge-${i}`}>
+              <circle r="50" fill="#FFFFFF" stroke={r.color} strokeWidth="4" />
+              <circle r="40" fill={r.soft} />
               <RouteIcon i={i} color={r.color} />
             </g>
-            <text y="70" textAnchor="middle" fontSize="16" fontWeight="800" fill="#0F172A" fontFamily="inherit">
-              {r.label}
-            </text>
+            <Label x={0} y={78} text={r.label} size={18} />
           </g>
         </g>
       ))}
@@ -334,87 +316,89 @@ export function RoutesArt() {
 /* Líquidos                                                            */
 /* ------------------------------------------------------------------ */
 
-const TUBES = [
+const YES = [
   { label: 'Sangre', color: '#DC2626' },
-  { label: 'Semen', color: '#FB7185' },
-  { label: 'Vaginal', color: '#F43F5E' },
-  { label: 'Rectal', color: '#E11D48' },
-  { label: 'Leche', color: '#FDA4AF' },
+  { label: 'Semen', color: '#F43F5E' },
+  { label: 'Fluido vaginal', color: '#E11D48' },
+  { label: 'Leche materna', color: '#FB7185' },
 ];
+const NO = ['Saliva', 'Sudor', 'Lágrimas', 'Orina'];
+const COL = (i: number) => 96 + i * 136;
 
-export function FluidsArt() {
-  const rootRef = useSceneAnimation(() => {
-    gsap.utils.toArray<SVGCircleElement>('.bubble').forEach((el, i) => {
-      gsap.fromTo(el, { y: 0, opacity: 0 }, { y: -54, opacity: 0.9, duration: 1.6, repeat: -1, delay: (i % 5) * 0.37 + Math.floor(i / 5) * 0.8, ease: 'sine.in' });
-    });
-    gsap.fromTo('.liquid', { scaleY: 0.85, transformOrigin: '50% 100%' }, { scaleY: 1, duration: 1.2, repeat: -1, yoyo: true, stagger: 0.2, ease: 'sine.inOut' });
+/** Partícula de virus: círculo con espículas. */
+function Virus() {
+  return <VirusShape color="#FFFFFF" />;
+}
 
-    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.6 });
-    tl.set('.fluid-tag', { opacity: 0, scale: 0.5, transformOrigin: '50% 50%' })
-      .set('.sweat, .tear', { opacity: 0, y: 0 })
-      .to('.sweat', { opacity: 1, duration: 0.3 }, 0.3)
-      .to('.tag-sweat', { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, 0.3)
-      .to('.sweat', { y: 70, duration: 1.2, ease: 'power1.in' }, 0.7)
-      .to('.sweat', { opacity: 0, duration: 0.3 }, 1.6)
-      .to('.tear', { opacity: 1, duration: 0.3 }, 1.6)
-      .to('.tag-tear', { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, 1.6)
-      .to('.tear', { y: 60, duration: 1.1, ease: 'power1.in' }, 2)
-      .to('.tear', { opacity: 0, duration: 0.3 }, 2.8)
-      .to('.tag-saliva', { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, 3)
-      .to('.fluid-tag', { opacity: 0, duration: 0.3 }, 4.8);
-  });
-
+function VirusShape({ color }: { color: string }) {
   return (
-    <Frame label="A la izquierda, tubos con sangre, semen, secreciones y leche materna, que sí transmiten. A la derecha, una persona con sudor y lágrimas, que no transmiten." rootRef={rootRef}>
-      <rect width={W} height={H} fill="#FFF1F2" />
-      <path d="M 300 0 C 320 130, 280 260, 300 520 L 600 520 L 600 0 Z" fill="#ECFDF5" />
-      <Pill x={150} y={56} text="Sí lo transmiten" fill="#F43F5E" />
-      <Pill x={452} y={56} text="No lo transmiten" fill="#10B981" />
-
-      {/* Repisa con tubos de ensayo */}
-      <rect x="0" y="420" width="300" height="100" fill="#FECDD3" />
-      <rect x="0" y="414" width="300" height="10" fill="#FDA4AF" />
-      <rect x="22" y="250" width="256" height="10" rx="5" fill="#9F1239" opacity="0.8" />
-      {TUBES.map((t, i) => {
-        const x = 50 + i * 50;
+    <g>
+      {Array.from({ length: 8 }, (_, k) => {
+        const a = (k * Math.PI) / 4;
         return (
-          <g key={t.label}>
-            <rect x={x - 14} y="226" width="28" height="172" rx="14" fill="#FFFFFF" stroke="#FBCFE8" strokeWidth="2" />
-            <rect className="liquid" x={x - 10} y={300 + (i % 3) * 14} width="20" height={94 - (i % 3) * 14} rx="10" fill={t.color} />
-            {[0, 1].map((k) => (
-              <circle key={k} className="bubble" cx={x - 3 + k * 6} cy="386" r={2.4 - k * 0.6} fill="#FFFFFF" opacity="0" />
-            ))}
-            <text x={x} y="450" textAnchor="middle" fontSize="11.5" fontWeight="800" fill="#9F1239" fontFamily="inherit">
-              {t.label}
-            </text>
+          <g key={k}>
+            <line x1={Math.cos(a) * 6} y1={Math.sin(a) * 6} x2={Math.cos(a) * 10} y2={Math.sin(a) * 10} stroke={color} strokeWidth="2" />
+            <circle cx={Math.cos(a) * 11} cy={Math.sin(a) * 11} r="2" fill={color} />
           </g>
         );
       })}
-      <rect x="18" y="392" width="264" height="22" rx="7" fill="#9F1239" />
-      <rect x="18" y="392" width="264" height="6" rx="3" fill="#BE123C" />
+      <circle r="7" fill={color} />
+    </g>
+  );
+}
 
-      {/* Persona con sudor y lágrimas */}
-      <Person
-        x={452}
-        y={590}
-        scale={1.2}
-        shirtColor="#10B981"
-        shirtShadow="#047857"
-        skinColor="#C68642"
-        skinShadow="#A0692F"
-        hairColor="#1C1917"
-        hairStyle="bob"
-        expression="relieved"
-      />
-      <g transform="translate(408 352)">
-        <path className="sweat" d={DROP} transform="scale(1.3)" fill="#7DD3FC" stroke="#FFFFFF" strokeWidth="1.2" opacity="0" />
+export function FluidsArt() {
+  const rootRef = useSceneAnimation(() => {
+    gsap.set('.yes-drop, .no-drop', { opacity: 0, y: -24 });
+    gsap.set('.yes-head, .no-head', { opacity: 0 });
+    const intro = gsap.timeline({ delay: 0.3 });
+    intro
+      .to('.yes-head', { opacity: 1, duration: 0.4 })
+      .to('.yes-drop', { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: 'bounce.out' }, '-=0.1')
+      .to('.no-head', { opacity: 1, duration: 0.4 }, '+=0.3')
+      .to('.no-drop', { opacity: 1, y: 0, duration: 0.5, stagger: 0.15, ease: 'bounce.out' }, '-=0.1');
+    // Los líquidos que sí transmiten llevan el virus dentro
+    gsap.to('.virus', { rotation: 360, duration: 6, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
+    gsap.fromTo('.virus', { scale: 0.85 }, { scale: 1.1, duration: 0.9, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 0.2, transformOrigin: '50% 50%' });
+  });
+
+  return (
+    <Frame label="Arriba, gotas de sangre, semen, fluido vaginal y leche materna con el virus dentro: sí lo transmiten. Abajo, gotas de saliva, sudor, lágrimas y orina sin virus: no lo transmiten." rootRef={rootRef}>
+      <rect x={-1200} y="268" width="3000" height="1000" fill="#ECFDF5" />
+      <g className="yes-head">
+        <circle cx="72" cy="52" r="15" fill="#E11D48" />
+        <path d="M 65 52.5 L 70 57.5 L 79 47.5" stroke="#FFFFFF" strokeWidth="3.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <text x="96" y="59" fontSize="21" fontWeight="900" fill="#9F1239" fontFamily="inherit">Sí lo transmiten</text>
       </g>
-      <g transform="translate(476 396)">
-        <path className="tear" d={DROP} fill="#38BDF8" stroke="#FFFFFF" strokeWidth="1.2" opacity="0" />
+      {YES.map((f, i) => (
+        <g key={f.label} transform={`translate(${COL(i)} 150)`}>
+          <g className="yes-drop">
+            <path d={DROP} transform="scale(4.6)" fill={f.color} />
+            <path d="M -14 -10 C -18 0, -18 8, -12 16" stroke="#FFFFFF" strokeOpacity="0.45" strokeWidth="5" fill="none" strokeLinecap="round" />
+            <g transform="translate(2 22)">
+              <g className="virus">
+                <Virus />
+              </g>
+            </g>
+            <Label x={0} y={92} text={f.label} color="#881337" size={16} />
+          </g>
+        </g>
+      ))}
+
+      <g className="no-head">
+        <circle cx="72" cy="316" r="15" fill="#059669" />
+        <path d="M 66 310 L 78 322 M 78 310 L 66 322" stroke="#FFFFFF" strokeWidth="3.4" strokeLinecap="round" />
+        <text x="96" y="323" fontSize="21" fontWeight="900" fill="#065F46" fontFamily="inherit">No lo transmiten</text>
       </g>
-      <Pill x={372} y={262} text="Sudor" fill="#FFFFFF" color="#047857" className="fluid-tag tag-sweat" size={14} />
-      <Pill x={540} y={262} text="Lágrimas" fill="#FFFFFF" color="#047857" className="fluid-tag tag-tear" size={14} />
-      <Pill x={456} y={206} text="Saliva" fill="#FFFFFF" color="#047857" className="fluid-tag tag-saliva" size={14} />
+      {NO.map((label, i) => (
+        <g key={label} transform={`translate(${COL(i)} 408)`}>
+          <g className="no-drop">
+            <path d={DROP} transform="scale(4.6)" fill="#7DD3FC" />
+            <path d="M -14 -10 C -18 0, -18 8, -12 16" stroke="#FFFFFF" strokeOpacity="0.6" strokeWidth="5" fill="none" strokeLinecap="round" />
+            <Label x={0} y={92} text={label} color="#065F46" size={16} />
+          </g>
+        </g>
+      ))}
     </Frame>
   );
 }
@@ -423,91 +407,98 @@ export function FluidsArt() {
 /* Situaciones de riesgo                                               */
 /* ------------------------------------------------------------------ */
 
-const RISKS = ['Agujas compartidas', 'Sexo sin condón', 'Tatuajes sin esterilizar', 'Transfusión sin control'];
-
 function Syringe() {
   return (
     <g>
-      <rect x="-56" y="-11" width="7" height="22" rx="2" fill="#475569" />
-      <rect x="-50" y="-3.5" width="18" height="7" fill="#64748B" />
-      <rect x="-34" y="-11" width="62" height="22" rx="5" fill="#FFFFFF" stroke="#94A3B8" strokeWidth="2" />
-      <rect x="-6" y="-7" width="30" height="14" rx="2" fill="#DC2626" />
-      <line x1="28" y1="0" x2="56" y2="0" stroke="#64748B" strokeWidth="2.6" strokeLinecap="round" />
-      <circle className="needle-blood" cx="58" cy="2" r="3.6" fill="#DC2626" />
+      <rect x="-70" y="-15" width="9" height="30" rx="3" fill="#475569" />
+      <rect x="-62" y="-5" width="22" height="10" fill="#64748B" />
+      <rect x="-42" y="-16" width="80" height="32" rx="7" fill="#FFFFFF" stroke="#94A3B8" strokeWidth="3" />
+      <rect className="syringe-blood" x="-4" y="-10" width="38" height="20" rx="3" fill="#DC2626" />
+      {[-24, -10, 4, 18].map((x) => (
+        <line key={x} x1={x} y1="-16" x2={x} y2="-8" stroke="#94A3B8" strokeWidth="2" />
+      ))}
+      <rect x="38" y="-6" width="10" height="12" rx="2" fill="#94A3B8" />
+      <line x1="48" y1="0" x2="86" y2="0" stroke="#64748B" strokeWidth="3" strokeLinecap="round" />
+      <circle cx="88" cy="3" r="4.5" fill="#DC2626" />
     </g>
   );
 }
 
+function CondomPack() {
+  return (
+    <g>
+      <rect x="-46" y="-46" width="92" height="92" rx="10" fill="#A78BFA" stroke="#7C3AED" strokeWidth="4" strokeDasharray="6 4" />
+      <circle r="26" fill="none" stroke="#EDE9FE" strokeWidth="7" />
+      {/* Prohibido: sin condón */}
+      <circle r="60" fill="none" stroke="#F43F5E" strokeWidth="9" />
+      <line x1="-42" y1="-42" x2="42" y2="42" stroke="#F43F5E" strokeWidth="9" strokeLinecap="round" />
+    </g>
+  );
+}
+
+function TattooPen() {
+  return (
+    <g transform="rotate(35)">
+      <rect x="-14" y="-70" width="28" height="56" rx="8" fill="#334155" />
+      <rect x="-10" y="-62" width="20" height="10" rx="3" fill="#64748B" />
+      <rect x="-11" y="-14" width="22" height="46" rx="6" fill="#94A3B8" />
+      <path d="M -9 32 L 9 32 L 3 50 L -3 50 Z" fill="#64748B" />
+      <line x1="0" y1="50" x2="0" y2="64" stroke="#475569" strokeWidth="2.5" strokeLinecap="round" />
+      <path d={DROP} transform="translate(0 76) scale(1.2)" fill="#DC2626" />
+    </g>
+  );
+}
+
+const RISKS = [
+  { y: 92, label: 'Sin condón', Icon: CondomPack },
+  { y: 260, label: 'Agujas usadas', Icon: () => <g transform="rotate(-35) scale(0.9)"><Syringe /></g> },
+  { y: 428, label: 'Tatuajes', Icon: TattooPen },
+];
+
 export function RiskArt() {
   const rootRef = useSceneAnimation(() => {
-    gsap.to('.syringe-pass', { x: 16, duration: 1.1, repeat: -1, yoyo: true, ease: 'sine.inOut' });
-    gsap.fromTo('.risk-halo', { scale: 0.6, opacity: 0.6, transformOrigin: '50% 50%' }, { scale: 1.7, opacity: 0, duration: 1.8, repeat: -1, stagger: 0.6, ease: 'sine.out' });
-    gsap.fromTo('.syringe-ring', { scale: 0.5, opacity: 0.8, transformOrigin: '50% 50%' }, { scale: 1.4, opacity: 0, duration: 1.2, repeat: -1, ease: 'power1.out' });
-    gsap.to('.needle-blood', { scale: 1.4, duration: 0.6, repeat: -1, yoyo: true, transformOrigin: '50% 50%' });
-    gsap.to('.warn', { rotation: 4, duration: 0.18, repeat: -1, yoyo: true, repeatDelay: 1.6, ease: 'sine.inOut', svgOrigin: '300 110' });
-
-    const tl = gsap.timeline({ repeat: -1 });
-    tl.set('.risk-chip', { opacity: 0, y: 10 });
+    // Una situación a la vez: se destaca y de ella sale el virus
+    const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.3 });
+    tl.set('.risk-item', { opacity: 0.35, scale: 0.92, transformOrigin: '50% 50%' })
+      .set('.risk-virus', { opacity: 0, x: 0, y: 0, scale: 0.4, rotation: 0, transformOrigin: '50% 50%' })
+      .set('.risk-ring', { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' });
     RISKS.forEach((_, i) => {
-      tl.to(`.risk-chip-${i}`, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, i * 1.8)
-        .to(`.risk-chip-${i}`, { opacity: 0, y: -10, duration: 0.3, ease: 'power2.in' }, i * 1.8 + 1.5);
+      const t = 0.3 + i * 2.2;
+      tl.to(`.risk-item-${i}`, { opacity: 1, scale: 1.05, duration: 0.45, ease: 'back.out(2)' }, t)
+        .fromTo(`.risk-ring-${i}`, { opacity: 0.8, scale: 0.6 }, { opacity: 0, scale: 1.4, duration: 1, ease: 'power2.out' }, t + 0.2)
+        .to(`.risk-virus-${i}`, { opacity: 1, scale: 1, x: 290, y: -40, duration: 0.9, ease: 'power2.out' }, t + 0.35)
+        .to(`.risk-virus-${i}`, { rotation: 90, duration: 1.2, ease: 'none' }, t + 0.35)
+        .to(`.risk-virus-${i}`, { opacity: 0, duration: 0.3 }, t + 1.7)
+        .to(`.risk-item-${i}`, { opacity: 0.35, scale: 0.92, duration: 0.4 }, t + 1.9);
     });
+    tl.to('.risk-item', { opacity: 1, scale: 1, duration: 0.5, stagger: 0.1 }, 7)
+      .to({}, { duration: 1.6 })
+      .to('.risk-item', { opacity: 0.35, scale: 0.92, duration: 0.4 });
   });
 
   return (
-    <Frame label="Dos personas se pasan una jeringa usada. Arriba, una señal de advertencia con situaciones de riesgo." rootRef={rootRef}>
-      <rect width={W} height={H} fill="#FFF7ED" />
-      <rect y="380" width={W} height="140" fill="#FFEDD5" />
-      <rect y="374" width={W} height="8" fill="#FED7AA" />
-      <g transform="translate(300 110)">
-        {[0, 1, 2].map((i) => (
-          <circle key={i} className="risk-halo" r="70" fill="none" stroke="#FDBA74" strokeWidth="3" />
-        ))}
-        <circle r="66" fill="#FFFFFF" />
-      </g>
-      <g className="warn">
-        <path d="M 300 66 L 346 144 L 254 144 Z" fill="#F43F5E" stroke="#F43F5E" strokeWidth="14" strokeLinejoin="round" />
-        <rect x="294" y="88" width="12" height="34" rx="6" fill="#FFFFFF" />
-        <circle cx="300" cy="134" r="6.5" fill="#FFFFFF" />
-      </g>
-      {RISKS.map((r, i) => (
-        <Pill key={r} x={300} y={222} text={r} fill="#0F172A" className={`risk-chip risk-chip-${i}`} size={16} />
-      ))}
-
-      <g transform="translate(300 476)">
-        <circle className="syringe-ring" r="60" fill="none" stroke="#F43F5E" strokeWidth="4" />
-        <g className="syringe-pass">
-          <Syringe />
+    <Frame label="Tres situaciones de riesgo se destacan una a una y de cada una sale un virus: sexo sin condón, agujas usadas y tatuajes sin esterilizar." rootRef={rootRef}>
+      {RISKS.map(({ y, label, Icon }, i) => (
+        <g key={label} transform={`translate(170 ${y})`}>
+          <circle className={`risk-ring risk-ring-${i}`} r="80" fill="none" stroke="#F43F5E" strokeWidth="5" opacity="0" />
+          <g className={`risk-item risk-item-${i}`}>
+            <circle r="74" fill="#FFFFFF" />
+            <g transform="scale(0.85)">
+              <Icon />
+            </g>
+          </g>
+          <g transform="translate(70 -10)">
+            <g className={`risk-virus risk-virus-${i}`} opacity="0">
+              <g transform="scale(1.9)">
+                <VirusShape color="#E11D48" />
+              </g>
+            </g>
+          </g>
+          <text x="120" y="10" fontSize="30" fontWeight="900" fill="#7C2D12" fontFamily="inherit" letterSpacing="-0.5">
+            {label}
+          </text>
         </g>
-      </g>
-      <Person
-        x={104}
-        y={565}
-        scale={1.1}
-        shirtColor="#0EA5E9"
-        shirtShadow="#0369A1"
-        skinColor="#F2C19E"
-        skinShadow="#D09772"
-        hairColor="#78350F"
-        hairStyle="short"
-        expression="alert"
-        arms={['down', 'reach']}
-      />
-      <Person
-        x={496}
-        y={565}
-        scale={1.1}
-        flip
-        shirtColor="#F59E0B"
-        shirtShadow="#B45309"
-        skinColor="#8D5524"
-        skinShadow="#6B3E18"
-        hairColor="#0F172A"
-        hairStyle="bun"
-        expression="alert"
-        arms={['down', 'reach']}
-        blinkDelay={1.4}
-      />
+      ))}
     </Frame>
   );
 }
@@ -516,22 +507,10 @@ export function RiskArt() {
 /* Lo que no transmite                                                 */
 /* ------------------------------------------------------------------ */
 
-const SAFE = ['Abrazos', 'Dar la mano', 'Compartir vasos', 'Mosquitos', 'Piscinas'];
-
 export function SafeArt() {
-  const flight = useRef<SVGPathElement | null>(null);
   const rootRef = useSceneAnimation(() => {
-    gsap.to('.shake', { y: -5, duration: 0.18, repeat: -1, yoyo: true, repeatDelay: 0.04, ease: 'sine.inOut' });
-    gsap.to('.cloud', { x: 40, duration: 9, repeat: -1, yoyo: true, ease: 'sine.inOut', stagger: 1.5 });
-    gsap.to('.wing', { scaleY: 0.3, duration: 0.05, repeat: -1, yoyo: true, transformOrigin: '50% 100%' });
-    if (flight.current) {
-      gsap.to('.mosquito', {
-        motionPath: { path: flight.current, align: flight.current, alignOrigin: [0.5, 0.5], autoRotate: false },
-        duration: 7,
-        repeat: -1,
-        ease: 'none',
-      });
-    }
+    gsap.fromTo('.safe-badge', { scale: 0, transformOrigin: '50% 50%' }, { scale: 1, duration: 0.6, ease: 'back.out(2.2)', delay: 0.4 });
+    // Corazones que salen de las manos unidas
     gsap.utils.toArray<SVGPathElement>('.safe-heart').forEach((el, i) => {
       gsap.fromTo(
         el,
@@ -539,95 +518,58 @@ export function SafeArt() {
         {
           keyframes: [
             { opacity: 1, scale: 1, duration: 0.4 },
-            { y: -150, x: (i % 2 ? 1 : -1) * (14 + i * 6), opacity: 0, duration: 2.2, ease: 'sine.in' },
+            { y: -160, x: (i % 2 ? 1 : -1) * (12 + i * 5), opacity: 0, duration: 2.4, ease: 'sine.in' },
           ],
           repeat: -1,
-          delay: i * 0.55,
+          delay: 0.8 + i * 0.6,
           transformOrigin: '50% 50%',
         },
       );
     });
-    gsap.fromTo('.safe-badge', { scale: 0, transformOrigin: '50% 50%' }, { scale: 1, duration: 0.6, ease: 'back.out(2.2)', delay: 0.3 });
-    const tl = gsap.timeline({ repeat: -1 });
-    tl.set('.safe-chip', { opacity: 0, y: 10 });
-    SAFE.forEach((_, i) => {
-      tl.to(`.safe-chip-${i}`, { opacity: 1, y: 0, duration: 0.35, ease: 'power2.out' }, i * 1.6)
-        .to(`.safe-chip-${i}`, { opacity: 0, y: -10, duration: 0.3, ease: 'power2.in' }, i * 1.6 + 1.3);
-    });
   });
 
   return (
-    <Frame label="Dos amigos se dan la mano en un parque mientras salen corazones; un mosquito vuela alrededor. Nada de esto transmite el VIH." rootRef={rootRef}>
-      <rect width={W} height={H} fill="#F0FDF4" />
-      <circle cx="510" cy="96" r="40" fill="#FDE68A" />
-      <g className="cloud" fill="#FFFFFF">
-        <ellipse cx="110" cy="80" rx="46" ry="18" />
-        <ellipse cx="140" cy="68" rx="30" ry="18" />
+    <Frame label="Dos amigos se dan la mano y salen corazones. Arriba dice: sin riesgo." rootRef={rootRef}>
+      <Ground y={440} fill="#BBF7D0" edge="#86EFAC" />
+      <g className="safe-badge" transform="translate(300 110)">
+        <rect x="-118" y="-32" width="236" height="64" rx="32" fill="#10B981" />
+        <circle cx="-80" r="17" fill="#FFFFFF" />
+        <path d="M -88 0 L -82 6 L -72 -5" stroke="#10B981" strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <Label x={18} y={9} text="Sin riesgo" color="#FFFFFF" size={26} />
       </g>
-      <g className="cloud" fill="#FFFFFF">
-        <ellipse cx="400" cy="150" rx="36" ry="14" />
-        <ellipse cx="424" cy="140" rx="22" ry="14" />
-      </g>
-      <rect y="400" width={W} height="120" fill="#BBF7D0" />
-      <rect y="394" width={W} height="10" fill="#86EFAC" />
-
-      <g className="safe-badge" transform="translate(300 62)">
-        <rect x="-86" y="-24" width="172" height="48" rx="24" fill="#10B981" />
-        <circle cx="-58" r="13" fill="#FFFFFF" />
-        <path d="M -64 0 L -59.5 4.5 L -52 -4" stroke="#10B981" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-        <text x="12" y="7" textAnchor="middle" fontSize="19" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">Sin riesgo</text>
-      </g>
-      {SAFE.map((s, i) => (
-        <Pill key={s} x={300} y={132} text={s} fill="#FFFFFF" color="#065F46" className={`safe-chip safe-chip-${i}`} size={16} />
-      ))}
-
-      <path ref={flight} d="M 160 230 C 220 170, 380 300, 440 230 C 500 160, 380 160, 300 240 C 220 320, 100 290, 160 230 Z" fill="none" stroke="none" />
-      <g className="mosquito">
-        <ellipse className="wing" cx="-4" cy="-8" rx="6" ry="11" fill="#E0F2FE" opacity="0.9" />
-        <ellipse className="wing" cx="5" cy="-8" rx="6" ry="11" fill="#E0F2FE" opacity="0.9" />
-        <ellipse cx="0" cy="0" rx="13" ry="5" fill="#334155" />
-        <circle cx="13" cy="-1" r="4.5" fill="#1E293B" />
-        <line x1="17" y1="0" x2="27" y2="4" stroke="#1E293B" strokeWidth="1.5" strokeLinecap="round" />
-        {[-6, 0, 6].map((x) => (
-          <line key={x} x1={x} y1="4" x2={x - 3} y2="12" stroke="#1E293B" strokeWidth="1.2" />
-        ))}
-      </g>
-
       {[0, 1, 2, 3, 4].map((i) => (
-        <g key={i} transform={`translate(${300 + (i - 2) * 6} 452)`}>
-          <path className="safe-heart" d={HEART} transform={`scale(${1.1 + (i % 2) * 0.4})`} fill={i % 2 ? '#F43F5E' : '#FB7185'} opacity="0" />
+        <g key={i} transform={`translate(${300 + (i - 2) * 6} 390)`}>
+          <path className="safe-heart" d={HEART} transform={`scale(${1.2 + (i % 2) * 0.4})`} fill={i % 2 ? '#F43F5E' : '#FB7185'} opacity="0" />
         </g>
       ))}
-      <g className="shake">
-        <Person
-          x={122}
-          y={565}
-          scale={1.1}
-          shirtColor="#8B5CF6"
-          shirtShadow="#6D28D9"
-          skinColor="#F2C19E"
-          skinShadow="#D09772"
-          hairColor="#B45309"
-          hairStyle="wavy"
-          expression="happy"
-          arms={['down', 'reach']}
-        />
-        <Person
-          x={478}
-          y={565}
-          scale={1.1}
-          flip
-          shirtColor="#F43F5E"
-          shirtShadow="#BE123C"
-          skinColor="#8D5524"
-          skinShadow="#6B3E18"
-          hairColor="#0F172A"
-          hairStyle="curly"
-          expression="happy"
-          arms={['down', 'reach']}
-          blinkDelay={0.9}
-        />
-      </g>
+      <Person
+        x={122}
+        y={470}
+        scale={1.1}
+        shirtColor="#8B5CF6"
+        shirtShadow="#6D28D9"
+        skinColor="#F2C19E"
+        skinShadow="#D09772"
+        hairColor="#B45309"
+        hairStyle="wavy"
+        expression="happy"
+        arms={['down', 'reach']}
+      />
+      <Person
+        x={478}
+        y={470}
+        scale={1.1}
+        flip
+        shirtColor="#F43F5E"
+        shirtShadow="#BE123C"
+        skinColor="#8D5524"
+        skinShadow="#6B3E18"
+        hairColor="#0F172A"
+        hairStyle="curly"
+        expression="happy"
+        arms={['down', 'reach']}
+        blinkDelay={0.9}
+      />
     </Frame>
   );
 }
@@ -636,8 +578,8 @@ export function SafeArt() {
 /* Factores de riesgo                                                  */
 /* ------------------------------------------------------------------ */
 
-const C = { x: 340, y: 290 };
-const R = 160;
+const C = { x: 300, y: 300 };
+const R = 170;
 
 function arc(a0: number, a1: number) {
   const p = (a: number) => [C.x + R * Math.cos((a * Math.PI) / 180), C.y + R * Math.sin((a * Math.PI) / 180)];
@@ -646,82 +588,61 @@ function arc(a0: number, a1: number) {
   return `M ${x0.toFixed(1)} ${y0.toFixed(1)} A ${R} ${R} 0 0 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`;
 }
 
-const UP = ['Otras ITS', 'Heridas', 'Sin tratamiento'];
-const DOWN = ['Condón', 'Tratamiento', 'PrEP'];
+const UP = ['Otras ITS', 'Heridas', 'Sin prueba'];
+const DOWN = ['Condón', 'Tratamiento', 'Prueba'];
+
+function Chip({ x, text, fill, className }: { x: number; text: string; fill: string; className: string }) {
+  const w = text.length * 10 + 40;
+  return (
+    <g transform={`translate(${x} 430)`}>
+      <g className={className}>
+        <rect x={-w / 2} y="-21" width={w} height="42" rx="21" fill={fill} />
+        <Label x={0} y={6} text={text} color="#FFFFFF" size={17} />
+      </g>
+    </g>
+  );
+}
 
 export function FactorsArt() {
   const rootRef = useSceneAnimation(() => {
+    const o = { svgOrigin: `${C.x} ${C.y}` };
     const tl = gsap.timeline({ repeat: -1 });
-    tl.set('.chip-up, .chip-down', { opacity: 0, scale: 0.5, transformOrigin: '50% 50%' })
-      .set('.level-high, .level-low, .face-low', { opacity: 0 })
-      .set('.face-high', { opacity: 0 })
-      .set('.face-mid', { opacity: 1 })
-      .set('.needle', { rotation: 0, svgOrigin: `${C.x} ${C.y}` })
+    tl.set('.chip-up, .chip-down', { opacity: 0, scale: 0.6, transformOrigin: '50% 50%' })
+      .set('.level-high, .level-low', { opacity: 0 })
+      .set('.needle', { rotation: 0, ...o })
       .to('.chip-up', { opacity: 1, scale: 1, duration: 0.4, stagger: 0.3, ease: 'back.out(2.2)' }, 0.4)
-      .to('.needle', { rotation: 68, duration: 1.4, ease: 'elastic.out(1, 0.5)', svgOrigin: `${C.x} ${C.y}` }, 1)
-      .to('.level-high', { opacity: 1, duration: 0.3 }, 1.2)
-      .to('.face-mid', { opacity: 0, duration: 0.3 }, 1.2)
-      .to('.face-high', { opacity: 1, duration: 0.3 }, 1.2)
-      .to('.chip-up, .level-high', { opacity: 0, duration: 0.3 }, 3.6)
-      .to('.chip-down', { opacity: 1, scale: 1, duration: 0.4, stagger: 0.3, ease: 'back.out(2.2)' }, 3.9)
-      .to('.needle', { rotation: -68, duration: 1.6, ease: 'elastic.out(1, 0.55)', svgOrigin: `${C.x} ${C.y}` }, 4.5)
-      .to('.level-low', { opacity: 1, duration: 0.3 }, 4.8)
-      .to('.face-high', { opacity: 0, duration: 0.3 }, 4.8)
-      .to('.face-low', { opacity: 1, duration: 0.3 }, 4.8)
-      .to('.chip-down, .level-low', { opacity: 0, duration: 0.3 }, 7.4)
-      .to('.needle', { rotation: 0, duration: 0.8, ease: 'power2.inOut', svgOrigin: `${C.x} ${C.y}` }, 7.5)
-      .to('.face-low', { opacity: 0, duration: 0.3 }, 7.5)
-      .to('.face-mid', { opacity: 1, duration: 0.3 }, 7.5)
-      .to({}, { duration: 0.4 });
+      .to('.needle', { rotation: 62, duration: 1.4, ease: 'elastic.out(1, 0.5)', ...o }, 1.3)
+      .to('.level-high', { opacity: 1, duration: 0.3 }, 1.5)
+      .to('.chip-up, .level-high', { opacity: 0, duration: 0.3 }, 4)
+      .to('.chip-down', { opacity: 1, scale: 1, duration: 0.4, stagger: 0.3, ease: 'back.out(2.2)' }, 4.3)
+      .to('.needle', { rotation: -62, duration: 1.6, ease: 'elastic.out(1, 0.55)', ...o }, 5.2)
+      .to('.level-low', { opacity: 1, duration: 0.3 }, 5.4)
+      .to('.chip-down, .level-low', { opacity: 0, duration: 0.3 }, 8)
+      .to('.needle', { rotation: 0, duration: 0.8, ease: 'power2.inOut', ...o }, 8.1)
+      .to({}, { duration: 0.5 });
   });
 
-  const person = (expression: 'calm' | 'alert' | 'happy', cls: string) => (
-    <g className={cls}>
-      <Person
-        x={84}
-        y={612}
-        scale={0.95}
-        shirtColor="#0EA5E9"
-        shirtShadow="#0369A1"
-        skinColor="#E0AC84"
-        skinShadow="#BF8760"
-        hairColor="#3F2A1D"
-        hairStyle="curly"
-        expression={expression}
-      />
-    </g>
-  );
-
   return (
-    <Frame label="Un medidor de riesgo: la aguja sube con otras ITS, heridas o falta de tratamiento, y baja con condón, tratamiento y PrEP." rootRef={rootRef}>
-      <rect width={W} height={H} fill="#F8FAFC" />
-      <circle cx={C.x} cy={C.y} r="232" fill="#EEF2FF" />
-      <path d={arc(180, 240)} stroke="#10B981" strokeWidth="36" fill="none" />
-      <path d={arc(240, 300)} stroke="#F59E0B" strokeWidth="36" fill="none" />
-      <path d={arc(300, 360)} stroke="#F43F5E" strokeWidth="36" fill="none" />
-      {[200, 220, 260, 280, 320, 340].map((a) => (
-        <circle key={a} cx={C.x + (R - 34) * Math.cos((a * Math.PI) / 180)} cy={C.y + (R - 34) * Math.sin((a * Math.PI) / 180)} r="3" fill="#CBD5E1" />
-      ))}
-      <text x={C.x - R} y={C.y + 36} textAnchor="middle" fontSize="15" fontWeight="800" fill="#047857" fontFamily="inherit">Bajo</text>
-      <text x={C.x + R} y={C.y + 36} textAnchor="middle" fontSize="15" fontWeight="800" fill="#BE123C" fontFamily="inherit">Alto</text>
+    <Frame label="Un medidor de riesgo: la aguja sube con otras ITS, heridas o no hacerse la prueba, y baja con condón, tratamiento y la prueba." rootRef={rootRef}>
+      <path d={arc(180, 240)} stroke="#10B981" strokeWidth="40" fill="none" />
+      <path d={arc(240, 300)} stroke="#F59E0B" strokeWidth="40" fill="none" />
+      <path d={arc(300, 360)} stroke="#F43F5E" strokeWidth="40" fill="none" />
+      <Label x={C.x - R} y={C.y + 40} text="Bajo" color="#047857" size={17} />
+      <Label x={C.x + R} y={C.y + 40} text="Alto" color="#BE123C" size={17} />
       <g className="needle">
-        <path d={`M ${C.x - 9} ${C.y} L ${C.x} ${C.y - R + 22} L ${C.x + 9} ${C.y} Z`} fill="#0F172A" />
+        <path d={`M ${C.x - 10} ${C.y} L ${C.x} ${C.y - R + 26} L ${C.x + 10} ${C.y} Z`} fill="#0F172A" />
       </g>
-      <circle cx={C.x} cy={C.y} r="18" fill="#0F172A" />
+      <circle cx={C.x} cy={C.y} r="20" fill="#0F172A" />
       <circle cx={C.x} cy={C.y} r="7" fill="#FFFFFF" />
-      <text className="level-high" x={C.x} y={C.y + 50} textAnchor="middle" fontSize="20" fontWeight="900" fill="#BE123C" fontFamily="inherit">Más riesgo</text>
-      <text className="level-low" x={C.x} y={C.y + 50} textAnchor="middle" fontSize="20" fontWeight="900" fill="#047857" fontFamily="inherit">Menos riesgo</text>
+      <Label className="level-high" x={C.x} y={C.y + 62} text="Más riesgo" color="#BE123C" size={24} />
+      <Label className="level-low" x={C.x} y={C.y + 62} text="Menos riesgo" color="#047857" size={24} />
 
       {UP.map((t, i) => (
-        <Pill key={t} x={C.x + (i - 1) * 152} y={420} text={`↑ ${t}`} fill="#F43F5E" className="chip-up" size={15} />
+        <Chip key={t} x={C.x + (i - 1) * 168} text={`↑ ${t}`} fill="#F43F5E" className="chip-up" />
       ))}
       {DOWN.map((t, i) => (
-        <Pill key={t} x={C.x + (i - 1) * 152} y={420} text={`↓ ${t}`} fill="#10B981" className="chip-down" size={15} />
+        <Chip key={t} x={C.x + (i - 1) * 168} text={`↓ ${t}`} fill="#10B981" className="chip-down" />
       ))}
-
-      {person('calm', 'face-mid')}
-      {person('alert', 'face-high')}
-      {person('happy', 'face-low')}
     </Frame>
   );
 }

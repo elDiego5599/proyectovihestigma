@@ -4,40 +4,35 @@ import { FactorsArt, FluidsArt, RibbonArt, RiskArt, RoutesArt, SafeArt } from '.
 
 const QuizArt = () => <RibbonArt quiz />;
 
-type Tone = 'rose' | 'sky' | 'violet' | 'emerald' | 'amber' | 'slate';
+type Tone = 'rose' | 'sky' | 'violet' | 'emerald' | 'amber';
 
-const TONES: Record<Tone, { tile: string; ink: string; soft: string }> = {
-  rose: { tile: '#F43F5E', ink: '#9F1239', soft: '#FFF1F2' },
-  sky: { tile: '#0EA5E9', ink: '#075985', soft: '#F0F9FF' },
-  violet: { tile: '#8B5CF6', ink: '#5B21B6', soft: '#F5F3FF' },
-  emerald: { tile: '#10B981', ink: '#065F46', soft: '#ECFDF5' },
-  amber: { tile: '#F59E0B', ink: '#92400E', soft: '#FFFBEB' },
-  slate: { tile: '#64748B', ink: '#334155', soft: '#F8FAFC' },
+const TONES: Record<Tone, string> = {
+  rose: '#F43F5E',
+  sky: '#0EA5E9',
+  violet: '#8B5CF6',
+  emerald: '#10B981',
+  amber: '#F59E0B',
 };
 
-interface Item {
-  title: string;
-  text?: string;
-}
+type MarkKind = 'check' | 'cross' | 'up' | 'down' | 'dot';
 
 interface Column {
   heading: string;
   tone: Tone;
-  mark: 'check' | 'cross' | 'up' | 'down';
-  items: Item[];
+  mark: MarkKind;
+  items: string[];
 }
 
 interface Slide {
-  kicker: string;
   title: string;
   lead?: string;
-  /** Tarjetas numeradas (una por idea). */
-  cards?: (Item & { tone: Tone })[];
-  /** Dos columnas que se comparan (sí / no, aumenta / reduce). */
+  /** Lista corta de ideas, sin cajas. */
+  items?: { text: string; tone: Tone }[];
+  /** Dos listas que se comparan (sí / no, aumenta / reduce). */
   columns?: [Column, Column];
-  note?: string;
   cover?: boolean;
-  accent: Tone;
+  /** Composición: texto a la izquierda, a la derecha, arriba, o portada centrada. */
+  layout: 'split' | 'flip' | 'stack' | 'cover';
   /** Ilustración animada y su color de fondo. */
   art: ComponentType;
   artBg: string;
@@ -45,125 +40,69 @@ interface Slide {
 
 const SLIDES: Slide[] = [
   {
-    accent: 'rose',
     art: RibbonArt,
     artBg: '#FFF1F2',
-    kicker: 'Estación 2',
-    title: 'Transmisión y factores de riesgo del VIH',
-    lead: 'Cómo se transmite, cómo no se transmite y qué aumenta o reduce el riesgo. Al final pondremos a prueba lo aprendido.',
+    layout: 'cover',
+    title: 'Transmisión del VIH',
+    lead: 'Cómo se transmite, cómo no y cómo cuidarte.',
     cover: true,
   },
   {
-    accent: 'sky',
     art: RoutesArt,
     artBg: '#F8FAFC',
-    kicker: 'Vías de transmisión',
-    title: '¿Cómo se transmite el VIH?',
-    lead: 'Solo existen tres vías. En todas, un líquido con el virus entra al cuerpo de otra persona.',
-    cards: [
-      { tone: 'rose', title: 'Sexual', text: 'Relaciones vaginales, anales u orales sin condón con una persona que tiene el virus.' },
-      { tone: 'sky', title: 'Sanguínea', text: 'Compartir agujas o jeringas, transfusiones sin control y material sin esterilizar.' },
-      { tone: 'violet', title: 'Maternoinfantil', text: 'De madre a hijo durante el embarazo, el parto o la lactancia, si no hay tratamiento.' },
+    layout: 'split',
+    title: 'Solo hay 3 vías',
+    items: [
+      { tone: 'rose', text: 'Sexual, sin condón' },
+      { tone: 'sky', text: 'Sanguínea, al compartir agujas' },
+      { tone: 'violet', text: 'De madre a hijo, sin tratamiento' },
     ],
   },
   {
-    accent: 'rose',
     art: FluidsArt,
     artBg: '#FFF1F2',
-    kicker: 'Líquidos del cuerpo',
-    title: '¿Qué líquidos pueden transmitirlo?',
-    columns: [
-      {
-        heading: 'Sí lo transmiten',
-        tone: 'rose',
-        mark: 'check',
-        items: [
-          { title: 'Sangre' },
-          { title: 'Semen y líquido preseminal' },
-          { title: 'Secreciones vaginales' },
-          { title: 'Secreciones rectales' },
-          { title: 'Leche materna' },
-        ],
-      },
-      {
-        heading: 'No lo transmiten',
-        tone: 'emerald',
-        mark: 'cross',
-        items: [{ title: 'Saliva' }, { title: 'Sudor' }, { title: 'Lágrimas' }, { title: 'Orina' }],
-      },
-    ],
-    note: 'Para que haya riesgo, el líquido debe entrar por una mucosa, una herida o directo a la sangre.',
+    layout: 'stack',
+    title: '¿Qué líquidos lo transmiten?',
+    lead: 'Solo si entran al cuerpo por una herida o una mucosa.',
   },
   {
-    accent: 'amber',
     art: RiskArt,
     artBg: '#FFF7ED',
-    kicker: 'Situaciones de riesgo',
+    layout: 'flip',
     title: '¿Cuándo hay riesgo?',
-    cards: [
-      { tone: 'rose', title: 'Sexo sin condón', text: 'Sobre todo con parejas cuyo estado de VIH no se conoce.' },
-      { tone: 'sky', title: 'Compartir agujas', text: 'Jeringas, agujas o cualquier objeto que perfore la piel.' },
-      { tone: 'violet', title: 'Tatuajes y piercings', text: 'Con equipo que no es nuevo o no está esterilizado.' },
-      { tone: 'amber', title: 'Transfusiones sin control', text: 'Sangre que no fue analizada antes de usarse.' },
-      { tone: 'emerald', title: 'Embarazo sin control', text: 'Sin prueba ni tratamiento, el bebé puede adquirir el virus.' },
+    items: [
+      { tone: 'rose', text: 'Sexo sin condón' },
+      { tone: 'sky', text: 'Compartir agujas o jeringas' },
+      { tone: 'violet', text: 'Tatuajes sin material estéril' },
     ],
   },
   {
-    accent: 'emerald',
     art: SafeArt,
     artBg: '#F0FDF4',
-    kicker: 'Lo que no transmite',
+    layout: 'stack',
     title: 'En la vida diaria no hay riesgo',
-    lead: 'El VIH no sobrevive fuera del cuerpo y no se transmite por el aire, el agua ni el contacto casual.',
-    cards: [
-      { tone: 'emerald', title: 'Abrazos y besos', text: 'Ni un beso en la mejilla ni uno en la boca.' },
-      { tone: 'sky', title: 'Compartir vasos y comida', text: 'Tampoco cubiertos ni platos.' },
-      { tone: 'violet', title: 'Baños y piscinas', text: 'El agua y los inodoros no lo transmiten.' },
-      { tone: 'amber', title: 'Mosquitos', text: 'No inyectan sangre de otra persona.' },
-      { tone: 'rose', title: 'Dar la mano', text: 'Ni estudiar, trabajar o jugar juntos.' },
-      { tone: 'slate', title: 'Toser o estornudar', text: 'No viaja por el aire.' },
+    items: [
+      { tone: 'emerald', text: 'Abrazos, besos y dar la mano' },
+      { tone: 'emerald', text: 'Compartir vasos o comida' },
+      { tone: 'emerald', text: 'Baños, piscinas y mosquitos' },
     ],
   },
   {
-    accent: 'violet',
     art: FactorsArt,
     artBg: '#F8FAFC',
-    kicker: 'Factores de riesgo',
-    title: '¿Qué cambia la probabilidad?',
+    layout: 'flip',
+    title: '¿Qué cambia el riesgo?',
     columns: [
-      {
-        heading: 'La aumentan',
-        tone: 'rose',
-        mark: 'up',
-        items: [
-          { title: 'Carga viral alta', text: 'La persona no está en tratamiento.' },
-          { title: 'Otras ITS', text: 'Las llagas e inflamación facilitan la entrada.' },
-          { title: 'Heridas o sangrado', text: 'Dan una puerta directa a la sangre.' },
-          { title: 'Varias parejas sin protección' },
-          { title: 'No conocer tu estado', text: 'Nunca haberse hecho la prueba.' },
-        ],
-      },
-      {
-        heading: 'La reducen',
-        tone: 'emerald',
-        mark: 'down',
-        items: [
-          { title: 'Condón', text: 'Bien usado, en cada relación.' },
-          { title: 'Tratamiento', text: 'Indetectable = intransmisible.' },
-          { title: 'PrEP y PEP', text: 'Medicamentos antes o después de una exposición.' },
-          { title: 'Hacerse la prueba', text: 'Es gratuita y confidencial.' },
-          { title: 'Material nuevo y estéril' },
-        ],
-      },
+      { heading: 'Lo aumenta', tone: 'rose', mark: 'up', items: ['Otras ITS', 'Heridas', 'No hacerse la prueba'] },
+      { heading: 'Lo reduce', tone: 'emerald', mark: 'down', items: ['Condón', 'Tratamiento', 'Hacerse la prueba'] },
     ],
   },
   {
-    accent: 'rose',
     art: QuizArt,
     artBg: '#FFF1F2',
-    kicker: 'Actividad',
+    layout: 'cover',
     title: '¿Mito o realidad?',
-    lead: 'Verás 10 situaciones. Lee cada afirmación y decide si es un mito o una realidad. Después te explicamos por qué.',
+    lead: '10 situaciones. Tú decides.',
     cover: true,
   },
 ];
@@ -191,18 +130,21 @@ const rise = {
   show: { opacity: 1, y: 0, transition: spring },
 };
 
-function Mark({ kind, color }: { kind: Column['mark']; color: string }) {
-  const paths: Record<Column['mark'], string> = {
+function Mark({ kind, color }: { kind: MarkKind; color: string }) {
+  const paths: Record<MarkKind, string> = {
     check: 'M5 12.5L9.5 17L19 7.5',
     cross: 'M7 7L17 17M17 7L7 17',
     up: 'M12 19V5M6 11L12 5L18 11',
     down: 'M12 5V19M6 13L12 19L18 13',
+    dot: '',
   };
   return (
-    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ background: color }}>
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d={paths[kind]} stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
+    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full" style={{ background: color }}>
+      {kind !== 'dot' && (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d={paths[kind]} stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )}
     </span>
   );
 }
@@ -216,100 +158,106 @@ function Arrow({ back }: { back?: boolean }) {
 }
 
 function SlideText({ slide }: { slide: Slide }) {
-  const accent = TONES[slide.accent];
+  const center = slide.layout === 'cover';
+  const row = slide.layout === 'stack';
   return (
-    <motion.div variants={list} initial="hidden" animate="show" className="w-full">
-      <motion.p
-        variants={rise}
-        className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-[0.12em]"
-        style={{ background: accent.soft, color: accent.ink }}
-      >
-        <span className="h-2 w-2 rounded-full" style={{ background: accent.tile }} />
-        {slide.kicker}
-      </motion.p>
+    <motion.div
+      variants={list}
+      initial="hidden"
+      animate="show"
+      className={`w-full ${center ? 'text-center' : ''}`}
+    >
       <motion.h2
         variants={rise}
-        className={`mt-3 text-balance font-black tracking-[-0.04em] ${
-          slide.cover ? 'text-[34px] leading-[1.02] sm:text-[50px]' : 'text-[28px] leading-[1.05] sm:text-[38px]'
+        className={`text-balance font-black tracking-[-0.045em] ${
+          slide.cover ? 'text-[38px] leading-[1] sm:text-[64px]' : 'text-[30px] leading-[1.04] sm:text-[44px]'
         }`}
       >
         {slide.title}
       </motion.h2>
       {slide.lead && (
-        <motion.p
-          variants={rise}
-          className={`mt-3 text-pretty font-medium leading-[1.5] text-[#475569] ${slide.cover ? 'text-[16px] sm:text-[18.5px]' : 'text-[15px] sm:text-[16.5px]'}`}
-        >
+        <motion.p variants={rise} className={`mt-4 lg:max-w-[460px] ${center ? "mx-auto" : ""} text-pretty text-[17px] font-medium leading-[1.45] text-[#475569] sm:text-[20px]`}>
           {slide.lead}
         </motion.p>
       )}
 
-      {slide.cards && (
-        <div className={`mt-5 grid gap-2.5 ${slide.cards.length > 3 ? 'sm:grid-cols-2' : ''}`}>
-          {slide.cards.map((card, i) => {
-            const t = TONES[card.tone];
-            return (
-              <motion.div
-                key={card.title}
-                variants={rise}
-                className="flex items-start gap-3 rounded-2xl p-3.5"
-                style={{ background: t.soft }}
-              >
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[15px] font-black text-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]"
-                  style={{ background: t.tile }}
-                >
-                  {i + 1}
-                </span>
-                <div className="min-w-0">
-                  <h3 className="text-[16px] font-extrabold leading-tight tracking-[-0.02em]" style={{ color: t.ink }}>
-                    {card.title}
-                  </h3>
-                  {card.text && <p className="mt-0.5 text-pretty text-[13.5px] font-medium leading-[1.4] text-[#334155]">{card.text}</p>}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+      {slide.items && (
+        <ul className={row ? 'mt-4 flex flex-wrap gap-x-7 gap-y-3' : 'mt-7 space-y-4'}>
+          {slide.items.map((item) => (
+            <motion.li key={item.text} variants={rise} className="flex items-center gap-3.5">
+              <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: TONES[item.tone] }} />
+              <span className="text-[18px] font-bold leading-snug tracking-[-0.015em] sm:text-[21px]">{item.text}</span>
+            </motion.li>
+          ))}
+        </ul>
       )}
 
       {slide.columns && (
-        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
-          {slide.columns.map((col) => {
-            const t = TONES[col.tone];
-            return (
-              <motion.div key={col.heading} variants={rise} className="rounded-2xl p-4" style={{ background: t.soft }}>
-                <h3 className="flex items-center gap-2 text-[16px] font-extrabold tracking-[-0.02em]" style={{ color: t.ink }}>
-                  <Mark kind={col.mark} color={t.tile} />
-                  {col.heading}
-                </h3>
-                <motion.ul variants={list} className="mt-3 space-y-2">
-                  {col.items.map((item) => (
-                    <motion.li key={item.title} variants={rise} className="flex items-start gap-2">
-                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: t.tile }} />
-                      <p className="text-[14px] font-bold leading-[1.35] text-[#0F172A]">
-                        {item.title}
-                        {item.text && <span className="block text-[12.5px] font-medium text-[#475569]">{item.text}</span>}
-                      </p>
-                    </motion.li>
-                  ))}
-                </motion.ul>
-              </motion.div>
-            );
-          })}
+        <div className="mt-7 grid grid-cols-2 gap-6">
+          {slide.columns.map((col) => (
+            <motion.div key={col.heading} variants={rise}>
+              <h3 className="flex items-center gap-2.5 text-[17px] font-extrabold tracking-[-0.02em] sm:text-[19px]" style={{ color: TONES[col.tone] }}>
+                <Mark kind={col.mark} color={TONES[col.tone]} />
+                {col.heading}
+              </h3>
+              <ul className="mt-3.5 space-y-2.5">
+                {col.items.map((item) => (
+                  <li key={item} className="text-[16px] font-bold leading-snug text-[#0F172A] sm:text-[18px]">
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </motion.div>
+          ))}
         </div>
       )}
-
-      {slide.note && (
-        <motion.p
-          variants={rise}
-          className="mt-3 flex items-start gap-2.5 rounded-2xl bg-[#0F172A] px-4 py-3 text-pretty text-[13.5px] font-semibold leading-[1.45] text-white"
-        >
-          <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F43F5E] text-[12px] font-black">!</span>
-          {slide.note}
-        </motion.p>
-      )}
     </motion.div>
+  );
+}
+
+function SlideBody({ slide }: { slide: Slide }) {
+  const Art = slide.art;
+
+  if (slide.layout === 'cover') {
+    return (
+      <div className="flex min-h-full flex-col items-center justify-center gap-4 px-6 py-8" style={{ background: slide.artBg }}>
+        <div className="h-[34vh] w-full max-w-[520px] lg:h-[44vh]">
+          <Art />
+        </div>
+        <div className="max-w-[680px]">
+          <SlideText slide={slide} />
+        </div>
+      </div>
+    );
+  }
+
+  if (slide.layout === 'stack') {
+    return (
+      <div className="flex min-h-full flex-col lg:h-full">
+        <div className="px-5 pb-2 pt-6 sm:px-10 lg:px-12 lg:pt-10">
+          <SlideText slide={slide} />
+        </div>
+        <div className="flex-1 p-2.5 sm:p-3 lg:min-h-0">
+          <div className="h-[40vh] overflow-hidden rounded-[22px] lg:h-full" style={{ background: slide.artBg }}>
+            <Art />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const flip = slide.layout === 'flip';
+  return (
+    <div className={`grid min-h-full ${flip ? 'lg:grid-cols-[minmax(0,1.02fr)_minmax(0,1fr)]' : 'lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]'}`}>
+      <div className={`order-2 flex items-start lg:items-center px-5 pb-6 pt-4 sm:px-10 sm:pb-10 lg:py-10 ${flip ? 'lg:order-2 lg:pl-8 lg:pr-12' : 'lg:order-1 lg:pl-12 lg:pr-6'}`}>
+        <SlideText slide={slide} />
+      </div>
+      <div className={`order-1 p-2.5 sm:p-3 ${flip ? 'lg:order-1' : 'lg:order-2'}`}>
+        <div className="h-[36vh] overflow-hidden rounded-[22px] lg:h-full" style={{ background: slide.artBg }}>
+          <Art />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -421,16 +369,7 @@ export function Presentation({ onStart }: { onStart: () => void }) {
               transition={spring}
               className="absolute inset-0 overflow-y-auto rounded-[28px] border border-[rgba(15,23,42,0.08)] bg-white shadow-[0_10px_40px_rgba(15,23,42,0.07)]"
             >
-              <div className="grid min-h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
-                <div className="order-2 flex items-center px-5 pb-6 pt-4 sm:px-10 sm:pb-10 lg:order-1 lg:py-10 lg:pl-12 lg:pr-6">
-                  <SlideText slide={slide} />
-                </div>
-                <div className="order-1 p-2.5 sm:p-3 lg:order-2">
-                  <div className="h-[36vh] overflow-hidden rounded-[22px] lg:h-full" style={{ background: slide.artBg }}>
-                    <slide.art />
-                  </div>
-                </div>
-              </div>
+              <SlideBody slide={slide} />
             </motion.section>
           </AnimatePresence>
         </div>

@@ -67,12 +67,26 @@ function Background() {
       ))}
       <rect y="360" width="1100" height="120" fill="#E2E8F0" />
       <rect y="354" width="1100" height="10" fill="#F1F5F9" />
-      {/* Cartel */}
-      <g transform="translate(550 40)">
-        <rect className="banner" x="-230" y="0" width="460" height="54" rx="27" fill="#0F172A" opacity="0" />
-        <text className="banner" y="35" textAnchor="middle" fontSize="22" fontWeight="800" fill="#FFFFFF" fontFamily="inherit" opacity="0">
-          El VIH no distingue a nadie
-        </text>
+      {/* Cartel en tres pasos: la pregunta, la respuesta y el cuidado */}
+      <g transform="translate(550 34)">
+        <g className="banner banner-q" opacity="0">
+          <rect x="-250" y="0" width="500" height="56" rx="28" fill="#0F172A" />
+          <text y="36" textAnchor="middle" fontSize="23" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">
+            ¿Quién puede adquirir el VIH?
+          </text>
+        </g>
+        <g className="banner banner-a" opacity="0">
+          <rect x="-250" y="0" width="500" height="56" rx="28" fill="#DC2626" />
+          <text y="36" textAnchor="middle" fontSize="23" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">
+            ¡Cualquier persona! No distingue
+          </text>
+        </g>
+        <g className="banner banner-c" opacity="0">
+          <rect x="-250" y="0" width="500" height="56" rx="28" fill="#059669" />
+          <text y="36" textAnchor="middle" fontSize="23" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">
+            Todos podemos cuidarnos
+          </text>
+        </g>
       </g>
     </g>
   );
@@ -88,27 +102,36 @@ export function AnyoneScenario(_props: ScenarioProps) {
     tl.set('.who, .shield', { opacity: 0, scale: 0.4, transformOrigin: '50% 50%' })
       .set('.banner', { opacity: 0, y: -10 });
 
-    // Cada persona dice quién es
+    // 1. La pregunta
+    tl.to('.banner-q', { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 0.2);
+    // 2. Cada persona dice quién es
     PEOPLE.forEach((_, i) => {
-      tl.to(`.who-${i}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 0.3 + i * 0.35);
+      tl.to(`.who-${i}`, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 1 + i * 0.4);
     });
-    // El cartel: el VIH no distingue edad, género ni profesión
-    tl.to('.banner', { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, 2.6);
-    // Todos pueden cuidarse: aparece un escudo sobre cada uno
+    // 3. La respuesta: cualquier persona
+    tl.to('.banner-q', { opacity: 0, y: 10, duration: 0.3 }, 3.6)
+      .to('.banner-a', { opacity: 1, y: 0, duration: 0.5, ease: 'back.out(1.8)' }, 3.8)
+      .to('.who', { scale: 1.12, duration: 0.25, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 3.9);
+    // 4. Todos pueden cuidarse: aparece un escudo sobre cada uno
+    tl.to('.banner-a', { opacity: 0, y: 10, duration: 0.3 }, 5.8).to(
+      '.banner-c',
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' },
+      6,
+    );
     PEOPLE.forEach((_, i) => {
-      tl.to(`.who-${i}`, { opacity: 0, scale: 0.6, duration: 0.25 }, 3.6 + i * 0.2).to(
+      tl.to(`.who-${i}`, { opacity: 0, scale: 0.6, duration: 0.25 }, 6 + i * 0.2).to(
         `.shield-${i}`,
         { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.4)' },
-        3.8 + i * 0.2,
+        6.2 + i * 0.2,
       );
     });
-    tl.to('.shield, .banner', { opacity: 0, duration: 0.5 }, 7.4);
+    tl.to('.shield, .banner', { opacity: 0, duration: 0.5 }, 9.4);
   });
 
   return (
     <SceneRoot rootRef={rootRef}>
       <Stage
-        label="Cinco personas distintas en una plaza: una estudiante, una abuela, un deportista, una mamá y un profesor. Aparece un cartel: el VIH no distingue a nadie, y sobre cada persona aparece un escudo de cuidado."
+        label="Cinco personas distintas en una plaza: una estudiante, una abuela, un deportista, una mamá y un profesor. Un cartel pregunta quién puede adquirir el VIH, responde que cualquier persona, y luego dice que todos podemos cuidarnos mientras aparece un escudo sobre cada persona."
         background={<Background />}
       >
         {PEOPLE.map((p, i) => (
