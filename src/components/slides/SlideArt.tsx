@@ -1,5 +1,6 @@
 import { useId, useRef, type ReactNode, type RefObject } from 'react';
 import { gsap } from '../../lib/gsap';
+import { Condom } from '../art/Condom';
 import { Person } from '../art/Person';
 import { SceneRoot, useSceneAnimation } from '../art/Stage';
 
@@ -199,11 +200,8 @@ export function RibbonArt({ quiz = false }: { quiz?: boolean }) {
                     </g>
                   )}
                   {i === 1 && (
-                    /* Condón en su sobre */
-                    <g>
-                      <rect x="-12" y="-12" width="24" height="24" rx="4" fill={c.color} />
-                      <circle r="6.5" fill="none" stroke="#FFFFFF" strokeWidth="2.4" />
-                      <circle r="2.6" fill="none" stroke="#FFFFFF" strokeWidth="1.2" />
+                    <g transform="scale(0.36)">
+                      <Condom />
                     </g>
                   )}
                   {i === 2 && (
@@ -498,8 +496,7 @@ function Syringe() {
 function CondomPack() {
   return (
     <g>
-      <rect x="-46" y="-46" width="92" height="92" rx="10" fill="#A78BFA" stroke="#7C3AED" strokeWidth="4" strokeDasharray="6 4" />
-      <circle r="26" fill="none" stroke="#EDE9FE" strokeWidth="7" />
+      <Condom />
       {/* Prohibido: sin condón */}
       <circle r="60" fill="none" stroke="#F43F5E" strokeWidth="9" />
       <line x1="-42" y1="-42" x2="42" y2="42" stroke="#F43F5E" strokeWidth="9" strokeLinecap="round" />
