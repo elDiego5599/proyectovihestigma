@@ -663,12 +663,12 @@ const UP = ['Otras ITS', 'Heridas', 'Sin prueba'];
 const DOWN = ['Condón', 'Tratamiento', 'Prueba'];
 
 function Chip({ x, text, fill, className }: { x: number; text: string; fill: string; className: string }) {
-  const w = text.length * 10 + 40;
+  const w = text.length * 9 + 26;
   return (
     <g transform={`translate(${x} 430)`}>
       <g className={className}>
         <rect x={-w / 2} y="-21" width={w} height="42" rx="21" fill={fill} />
-        <Label x={0} y={6} text={text} color="#FFFFFF" size={17} />
+        <Label x={0} y={6} text={text} color="#FFFFFF" size={16} />
       </g>
     </g>
   );
@@ -695,7 +695,7 @@ export function FactorsArt() {
 
   return (
     <Frame label="Un medidor de riesgo: la aguja sube con otras ITS, heridas o no hacerse la prueba, y baja con condón, tratamiento y la prueba." rootRef={rootRef}>
-      <g transform="translate(300 268) scale(1.38) translate(-300 -280)">
+      <g transform="translate(300 262) scale(1.18) translate(-300 -280)">
       <path d={arc(180, 240)} stroke="#10B981" strokeWidth="40" fill="none" />
       <path d={arc(240, 300)} stroke="#F59E0B" strokeWidth="40" fill="none" />
       <path d={arc(300, 360)} stroke="#F43F5E" strokeWidth="40" fill="none" />
@@ -710,10 +710,10 @@ export function FactorsArt() {
       <Label className="level-low" x={C.x} y={C.y + 62} text="Menos riesgo" color="#047857" size={24} />
 
       {UP.map((t, i) => (
-        <Chip key={t} x={C.x + (i - 1) * 168} text={`↑ ${t}`} fill="#F43F5E" className="chip-up" />
+        <Chip key={t} x={C.x + (i - 1) * 150} text={`↑ ${t}`} fill="#F43F5E" className="chip-up" />
       ))}
       {DOWN.map((t, i) => (
-        <Chip key={t} x={C.x + (i - 1) * 168} text={`↓ ${t}`} fill="#10B981" className="chip-down" />
+        <Chip key={t} x={C.x + (i - 1) * 150} text={`↓ ${t}`} fill="#10B981" className="chip-down" />
       ))}
       </g>
     </Frame>
