@@ -146,7 +146,7 @@ export function SexualRiskScenario(_props: ScenarioProps) {
     );
 
     // Sin preservativo el virus pasa de una persona a otra; con preservativo, el escudo lo detiene.
-    const START = { x: 420, y: 250 };
+    const START = { x: 410, y: 320 };
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.4 });
     tl.set('#packet', { scale: 0, opacity: 0, transformOrigin: '50% 50%' })
       .set('.virus-a, .virus-b', { x: START.x, y: START.y, opacity: 0, scale: 1, transformOrigin: '50% 50%' })
@@ -154,7 +154,7 @@ export function SexualRiskScenario(_props: ScenarioProps) {
 
     // 1. Sin protección: llega a la otra persona
     tl.to('.virus-a', { opacity: 1, duration: 0.25, stagger: 0.35 }, 0.3)
-      .to('.virus-a', { x: 690, y: 262, duration: 1.4, ease: 'sine.inOut', stagger: 0.35 }, 0.3)
+      .to('.virus-a', { x: 706, y: 322, duration: 1.4, ease: 'sine.inOut', stagger: 0.35 }, 0.3)
       .to('.virus-a', { opacity: 0, scale: 0.5, duration: 0.25, stagger: 0.35 }, 1.6)
       .to('.hit-ring', { opacity: 1, scale: 1, duration: 0.35, ease: 'power2.out' }, 1.7)
       .to('.hit-ring', { opacity: 0, scale: 1.7, duration: 0.7, ease: 'power1.in' }, 2.4)
@@ -162,7 +162,7 @@ export function SexualRiskScenario(_props: ScenarioProps) {
       // 2. Aparece el preservativo y bloquea el paso
       .to('#packet', { scale: 1, opacity: 1, duration: 0.6, ease: 'back.out(2)' }, 3.3)
       .to('.virus-b', { opacity: 1, duration: 0.25, stagger: 0.35 }, 4.1)
-      .to('.virus-b', { x: 492, y: 250, duration: 0.8, ease: 'power1.in', stagger: 0.35 }, 4.1)
+      .to('.virus-b', { x: 494, y: 272, duration: 0.8, ease: 'power1.in', stagger: 0.35 }, 4.1)
       .to('.virus-b', { x: 470, scale: 0.2, opacity: 0, duration: 0.35, ease: 'power2.out', stagger: 0.35 }, 4.9)
       .to('#packet', { scale: 0, opacity: 0, duration: 0.4, ease: 'power2.in' }, 7);
   });
@@ -211,7 +211,7 @@ export function SexualRiskScenario(_props: ScenarioProps) {
         <Heart x={604} y={106} s={0.65} />
 
         {/* Impacto en la persona B */}
-        <circle className="hit-ring" cx="690" cy="262" r="30" fill="none" stroke="#E11D48" strokeWidth="4" opacity="0" />
+        <circle className="hit-ring" cx="706" cy="322" r="30" fill="none" stroke="#E11D48" strokeWidth="4" opacity="0" />
         {[0, 1, 2].map((i) => <Virus key={`a${i}`} className="virus-a" />)}
         {[0, 1, 2].map((i) => <Virus key={`b${i}`} className="virus-b" />)}
 

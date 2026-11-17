@@ -9,31 +9,42 @@ interface ScenarioProps {
 const SCALE = 1.3;
 const BASE_Y = 424;
 const CLIENT_X = 230;
-const ARTIST_X = 742;
 // Punto del antebrazo del cliente donde se hace el tatuaje
 const [fx, fy] = forearmPoint('reach', 0.1, 0);
 const SPOT = { x: CLIENT_X + fx * SCALE, y: BASE_Y + fy * SCALE - 6 };
+// El tatuador sostiene la máquina en la mano (160, -70); la punta queda TIP_DX más adelante,
+// así que se coloca para que la punta caiga justo en SPOT.
+const HAND = { x: 160, y: -70 };
+const TIP_DX = 66;
+const TIP_DY = (SPOT.y - BASE_Y) / SCALE - HAND.y;
+const ARTIST_X = SPOT.x + (HAND.x + TIP_DX) * SCALE;
 // Lupa que muestra el tatuaje de cerca
-const LENS = { x: 560, y: 132, r: 92 };
+const LENS = { x: 430, y: 118, r: 86 };
 // Carrito con la bandeja de agujas
 const CART = { x: 940, y: 372 };
 
 const HEART = 'M 0 6 C -10 -2, -8 -12, 0 -7 C 8 -12, 10 -2, 0 6 Z';
 
-/** Máquina de tatuar; la punta de la aguja está en (0,0) y el mango va hacia la mano del tatuador. */
+/**
+ * Máquina de tatuar en coordenadas locales del tatuador: el mango en la mano (HAND)
+ * y la aguja hacia adelante, hasta el antebrazo del cliente. Encima, el guante azul.
+ */
 function TattooMachine() {
+  const a = (Math.atan2(TIP_DY, TIP_DX) * 180) / Math.PI;
+  const len = Math.hypot(TIP_DX, TIP_DY);
   return (
-    <g transform={`translate(${SPOT.x} ${SPOT.y})`}>
+    <g transform={`translate(${HAND.x} ${HAND.y})`}>
       <g id="machine">
-        <g transform="rotate(78) scale(1.25)">
-          <line x1="0" y1="0" x2="0" y2="-18" stroke="#CBD5E1" strokeWidth="2" strokeLinecap="round" />
-          <rect x="-6" y="-58" width="12" height="42" rx="5" fill="#475569" />
-          <rect x="-6" y="-46" width="12" height="4" fill="#334155" />
-          <rect x="-10" y="-88" width="20" height="32" rx="7" fill="#EC4899" />
-          <rect x="-10" y="-76" width="20" height="5" fill="#BE185D" />
-          <path d="M 0 -88 C 0 -108, 22 -112, 40 -100" stroke="#0F172A" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+        <g transform={`rotate(${a})`}>
+          <path d="M -40 -4 C -62 -10, -70 -30, -60 -46" stroke="#0F172A" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+          <rect x="-42" y="-10" width="36" height="20" rx="7" fill="#EC4899" />
+          <rect x="-26" y="-10" width="5" height="20" fill="#BE185D" />
+          <rect x="-6" y="-6" width={len - 22} height="12" rx="5" fill="#475569" />
+          <line x1={len - 28} y1="0" x2={len} y2="0" stroke="#CBD5E1" strokeWidth="2.4" strokeLinecap="round" />
         </g>
       </g>
+      <circle r="11" fill="#60A5FA" />
+      <path d="M -8 -4 C -2 -10, 6 -10, 10 -4" stroke="#3B82F6" strokeWidth="3" fill="none" strokeLinecap="round" />
     </g>
   );
 }
@@ -49,7 +60,7 @@ function Lens() {
         fill="#FFFFFF"
         opacity="0.16"
       />
-      <circle cx={SPOT.x} cy={SPOT.y} r="16" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeDasharray="4 4" />
+      <circle cx={SPOT.x} cy={SPOT.y} r="14" fill="none" stroke="#FFFFFF" strokeWidth="2.5" strokeDasharray="4 4" opacity="0.8" />
       <defs>
         <clipPath id={clip}>
           <circle cx={LENS.x} cy={LENS.y} r={LENS.r} />
@@ -75,19 +86,21 @@ function Lens() {
           strokeDashoffset="1"
         />
         {/* Aguja de cerca */}
-        <g id="lens-needle" transform={`translate(${LENS.x + 22} ${LENS.y - 6})`}>
-          <g transform="rotate(40)">
-            <line x1="0" y1="0" x2="0" y2="-60" stroke="#94A3B8" strokeWidth="4" strokeLinecap="round" />
-            <rect x="-11" y="-120" width="22" height="64" rx="8" fill="#475569" />
+        <g transform={`translate(${LENS.x + 20} ${LENS.y - 2})`}>
+        <g id="lens-needle">
+          <g transform="rotate(50)">
+            <line x1="0" y1="0" x2="0" y2="-40" stroke="#94A3B8" strokeWidth="3" strokeLinecap="round" />
+            <rect x="-8" y="-100" width="16" height="62" rx="6" fill="#475569" />
           </g>
           <circle id="lens-blood" cx="0" cy="4" r="7" fill="#DC2626" opacity="0" />
+        </g>
         </g>
       </g>
       <circle cx={LENS.x} cy={LENS.y} r={LENS.r} fill="none" stroke="#FFFFFF" strokeWidth="5" />
       <path d={`M ${LENS.x - 56} ${LENS.y - 52} A 78 78 0 0 1 ${LENS.x + 8} ${LENS.y - 78}`} stroke="#FFFFFF" strokeOpacity="0.6" strokeWidth="6" fill="none" strokeLinecap="round" />
       <g className="lens-tag" opacity="0">
-        <rect x={LENS.x - 92} y={LENS.y + LENS.r + 16} width="184" height="34" rx="17" fill="#DC2626" />
-        <text x={LENS.x} y={LENS.y + LENS.r + 38} textAnchor="middle" fontSize="15" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">
+        <rect x={LENS.x - 110} y={LENS.y + LENS.r + 14} width="220" height="38" rx="19" fill="#DC2626" />
+        <text x={LENS.x} y={LENS.y + LENS.r + 39} textAnchor="middle" fontSize="18" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">
           La aguja toca sangre
         </text>
       </g>
@@ -135,12 +148,12 @@ function Cart() {
         <path d="M 17.4 11 L 19.4 13 L 22.8 9.2" stroke="#FFFFFF" strokeWidth="1.6" fill="none" strokeLinecap="round" />
       </g>
       <g className="tray-tag tray-used" opacity="0">
-        <rect x="-74" y="-92" width="104" height="30" rx="15" fill="#DC2626" />
-        <text x="-22" y="-72" textAnchor="middle" fontSize="13" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">Usadas</text>
+        <rect x="-82" y="-96" width="116" height="34" rx="17" fill="#DC2626" />
+        <text x="-24" y="-73" textAnchor="middle" fontSize="16" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">Usadas</text>
       </g>
       <g className="tray-tag tray-new" opacity="0">
-        <rect x="6" y="-64" width="84" height="30" rx="15" fill="#10B981" />
-        <text x="48" y="-44" textAnchor="middle" fontSize="13" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">Nueva</text>
+        <rect x="4" y="-66" width="96" height="34" rx="17" fill="#10B981" />
+        <text x="52" y="-43" textAnchor="middle" fontSize="16" fontWeight="800" fill="#FFFFFF" fontFamily="inherit">Nueva</text>
       </g>
     </g>
   );
@@ -189,15 +202,6 @@ function Background() {
         <path d="M 0 -32 L 0 26 M -18 -16 L 18 -16 M -28 10 C -24 30, 24 30, 28 10" stroke="#0F172A" strokeWidth="5" fill="none" strokeLinecap="round" />
         <circle cx="0" cy="-36" r="7" fill="none" stroke="#0F172A" strokeWidth="4" />
       </Flash>
-      <Flash x={290} y={70} rot={3}>
-        <circle cx="0" cy="-4" r="20" fill="#F43F5E" stroke="#0F172A" strokeWidth="2" />
-        <path d="M -8 -6 C -4 -14, 6 -12, 6 -4 C 6 4, -6 4, -6 -2" stroke="#0F172A" strokeWidth="2" fill="none" />
-        <path d="M 0 16 L 0 40 M 0 28 C -12 22, -18 30, -14 34" stroke="#16A34A" strokeWidth="4" fill="none" strokeLinecap="round" />
-      </Flash>
-      <Flash x={400} y={58} rot={-6}>
-        <path d="M 0 -30 L 8 -8 L 30 -8 L 12 6 L 20 28 L 0 14 L -20 28 L -12 6 L -30 -8 L -8 -8 Z" fill="#38BDF8" stroke="#0F172A" strokeWidth="2" strokeLinejoin="round" />
-      </Flash>
-
       {/* Lámpara de trabajo */}
       <path d="M 1100 20 L 1040 20 L 1000 240" stroke="#475569" strokeWidth="5" fill="none" />
     </g>
@@ -208,13 +212,24 @@ export function TattooScenario(_props: ScenarioProps) {
   const rootRef = useSceneAnimation(() => {
     gsap.to('.neon', { opacity: 0.55, duration: 0.08, repeat: -1, yoyo: true, repeatDelay: 2.4, ease: 'none' });
 
+    const heart = document.getElementById('tattoo') as SVGPathElement | null;
+    const total = heart?.getTotalLength() ?? 0;
+    const pen = { t: 0 };
+    const follow = () => {
+      if (!heart) return;
+      const p = heart.getPointAtLength(pen.t * total);
+      // El tatuador está volteado y escalado: se convierte el desplazamiento a su espacio local
+      gsap.set('#machine', { x: -(p.x * 0.9) / SCALE, y: (p.y * 0.9 + 2) / SCALE });
+      gsap.set('#lens-needle', { x: -32 + p.x * 4.2, y: 8 + p.y * 4.2 });
+    };
     const tl = gsap.timeline({ repeat: -1, repeatDelay: 0.8 });
     tl.set('#tattoo, #lens-heart', { attr: { 'stroke-dashoffset': 1 } })
       .set('#lens-blood', { opacity: 0, scale: 0.4, transformOrigin: '50% 50%' })
       .set('.lens-tag, .tray-tag', { opacity: 0, y: 8 })
       // La máquina vibra mientras dibuja el corazón, en el brazo y en la lupa
-      .to('#machine', { x: 1.4, duration: 0.05, repeat: 60, yoyo: true, ease: 'none' }, 0.4)
-      .to('#lens-needle', { y: 3, duration: 0.05, repeat: 60, yoyo: true, ease: 'none' }, 0.4)
+      // La punta sigue el trazo del corazón, en el brazo y en la lupa
+      .fromTo(pen, { t: 0 }, { t: 1, duration: 3, ease: 'none', onUpdate: follow }, 0.4)
+      .to('#machine, #lens-needle', { x: 0, y: 0, duration: 0.5, ease: 'power2.inOut' }, 3.5)
       .to('#tattoo, #lens-heart', { attr: { 'stroke-dashoffset': 0 }, duration: 3, ease: 'none' }, 0.4)
       // La aguja entra en contacto con la sangre
       .to('#lens-blood', { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2.4)' }, 1.8)
@@ -275,7 +290,6 @@ export function TattooScenario(_props: ScenarioProps) {
           strokeDasharray="1"
           strokeDashoffset="1"
         />
-        <TattooMachine />
         <Person
           x={ARTIST_X}
           y={BASE_Y}
@@ -290,6 +304,7 @@ export function TattooScenario(_props: ScenarioProps) {
           expression="focused"
           sleeves="short"
           arms={['down', 'reach']}
+          held={<TattooMachine />}
           blinkDelay={1.2}
         />
         <Cart />
