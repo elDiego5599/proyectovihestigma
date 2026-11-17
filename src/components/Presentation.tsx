@@ -1,5 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { FactorsArt, FluidsArt, RibbonArt, RiskArt, RoutesArt, SafeArt } from './slides/SlideArt';
+
+const QuizArt = () => <RibbonArt quiz />;
 
 type Tone = 'rose' | 'sky' | 'violet' | 'emerald' | 'amber' | 'slate';
 
@@ -34,16 +37,26 @@ interface Slide {
   columns?: [Column, Column];
   note?: string;
   cover?: boolean;
+  accent: Tone;
+  /** Ilustración animada y su color de fondo. */
+  art: ComponentType;
+  artBg: string;
 }
 
 const SLIDES: Slide[] = [
   {
+    accent: 'rose',
+    art: RibbonArt,
+    artBg: '#FFF1F2',
     kicker: 'Estación 2',
     title: 'Transmisión y factores de riesgo del VIH',
     lead: 'Cómo se transmite, cómo no se transmite y qué aumenta o reduce el riesgo. Al final pondremos a prueba lo aprendido.',
     cover: true,
   },
   {
+    accent: 'sky',
+    art: RoutesArt,
+    artBg: '#F8FAFC',
     kicker: 'Vías de transmisión',
     title: '¿Cómo se transmite el VIH?',
     lead: 'Solo existen tres vías. En todas, un líquido con el virus entra al cuerpo de otra persona.',
@@ -54,6 +67,9 @@ const SLIDES: Slide[] = [
     ],
   },
   {
+    accent: 'rose',
+    art: FluidsArt,
+    artBg: '#FFF1F2',
     kicker: 'Líquidos del cuerpo',
     title: '¿Qué líquidos pueden transmitirlo?',
     columns: [
@@ -79,6 +95,9 @@ const SLIDES: Slide[] = [
     note: 'Para que haya riesgo, el líquido debe entrar por una mucosa, una herida o directo a la sangre.',
   },
   {
+    accent: 'amber',
+    art: RiskArt,
+    artBg: '#FFF7ED',
     kicker: 'Situaciones de riesgo',
     title: '¿Cuándo hay riesgo?',
     cards: [
@@ -90,6 +109,9 @@ const SLIDES: Slide[] = [
     ],
   },
   {
+    accent: 'emerald',
+    art: SafeArt,
+    artBg: '#F0FDF4',
     kicker: 'Lo que no transmite',
     title: 'En la vida diaria no hay riesgo',
     lead: 'El VIH no sobrevive fuera del cuerpo y no se transmite por el aire, el agua ni el contacto casual.',
@@ -103,6 +125,9 @@ const SLIDES: Slide[] = [
     ],
   },
   {
+    accent: 'violet',
+    art: FactorsArt,
+    artBg: '#F8FAFC',
     kicker: 'Factores de riesgo',
     title: '¿Qué cambia la probabilidad?',
     columns: [
@@ -133,6 +158,9 @@ const SLIDES: Slide[] = [
     ],
   },
   {
+    accent: 'rose',
+    art: QuizArt,
+    artBg: '#FFF1F2',
     kicker: 'Actividad',
     title: '¿Mito o realidad?',
     lead: 'Verás 10 situaciones. Lee cada afirmación y decide si es un mito o una realidad. Después te explicamos por qué.',
@@ -171,8 +199,8 @@ function Mark({ kind, color }: { kind: Column['mark']; color: string }) {
     down: 'M12 5V19M6 13L12 19L18 13',
   };
   return (
-    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: color }}>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg" style={{ background: color }}>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
         <path d={paths[kind]} stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </span>
@@ -187,104 +215,58 @@ function Arrow({ back }: { back?: boolean }) {
   );
 }
 
-/** Anillo de puntos que gira: adorno de las portadas. */
-function Orbit() {
-  return (
-    <motion.svg
-      viewBox="0 0 200 200"
-      className="h-40 w-40 sm:h-52 sm:w-52"
-      aria-hidden="true"
-      animate={{ rotate: 360 }}
-      transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-    >
-      <circle cx="100" cy="100" r="46" fill="#0F172A" />
-      <circle cx="100" cy="100" r="30" fill="#F43F5E" />
-      {Array.from({ length: 12 }, (_, i) => {
-        const a = (i / 12) * Math.PI * 2;
-        const colors = ['#F43F5E', '#0EA5E9', '#8B5CF6', '#10B981', '#F59E0B'];
-        return (
-          <motion.circle
-            key={i}
-            cx={100 + Math.cos(a) * 78}
-            cy={100 + Math.sin(a) * 78}
-            r="9"
-            fill={colors[i % colors.length]}
-            initial={{ scale: 0 }}
-            animate={{ scale: [0, 1.15, 1] }}
-            transition={{ delay: 0.2 + i * 0.05, duration: 0.5 }}
-            style={{ transformOrigin: `${100 + Math.cos(a) * 78}px ${100 + Math.sin(a) * 78}px` }}
-          />
-        );
-      })}
-    </motion.svg>
-  );
-}
-
-function SlideBody({ slide }: { slide: Slide }) {
-  if (slide.cover) {
-    return (
-      <motion.div variants={list} initial="hidden" animate="show" className="flex flex-col items-center text-center">
-        <motion.div variants={rise}>
-          <Orbit />
-        </motion.div>
-        <motion.p variants={rise} className="mt-6 text-[13px] font-bold uppercase tracking-[0.1em] text-[#64748B]">
-          {slide.kicker}
-        </motion.p>
-        <motion.h2
-          variants={rise}
-          className="mt-2 max-w-[760px] text-balance text-[34px] font-black leading-[1.04] tracking-[-0.035em] sm:text-[52px]"
-        >
-          {slide.title}
-        </motion.h2>
-        {slide.lead && (
-          <motion.p variants={rise} className="mt-4 max-w-[580px] text-pretty text-[16px] font-medium leading-[1.5] text-[#475569] sm:text-[18px]">
-            {slide.lead}
-          </motion.p>
-        )}
-      </motion.div>
-    );
-  }
-
+function SlideText({ slide }: { slide: Slide }) {
+  const accent = TONES[slide.accent];
   return (
     <motion.div variants={list} initial="hidden" animate="show" className="w-full">
-      <motion.p variants={rise} className="text-[13px] font-bold uppercase tracking-[0.1em] text-[#64748B]">
+      <motion.p
+        variants={rise}
+        className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[12px] font-extrabold uppercase tracking-[0.12em]"
+        style={{ background: accent.soft, color: accent.ink }}
+      >
+        <span className="h-2 w-2 rounded-full" style={{ background: accent.tile }} />
         {slide.kicker}
       </motion.p>
-      <motion.h2 variants={rise} className="mt-1.5 text-balance text-[28px] font-black leading-[1.08] tracking-[-0.03em] sm:text-[40px]">
+      <motion.h2
+        variants={rise}
+        className={`mt-3 text-balance font-black tracking-[-0.04em] ${
+          slide.cover ? 'text-[34px] leading-[1.02] sm:text-[50px]' : 'text-[28px] leading-[1.05] sm:text-[38px]'
+        }`}
+      >
         {slide.title}
       </motion.h2>
       {slide.lead && (
-        <motion.p variants={rise} className="mt-3 max-w-[720px] text-pretty text-[15.5px] font-medium leading-[1.5] text-[#475569] sm:text-[17px]">
+        <motion.p
+          variants={rise}
+          className={`mt-3 text-pretty font-medium leading-[1.5] text-[#475569] ${slide.cover ? 'text-[16px] sm:text-[18.5px]' : 'text-[15px] sm:text-[16.5px]'}`}
+        >
           {slide.lead}
         </motion.p>
       )}
 
       {slide.cards && (
-        <div
-          className={`mt-6 grid gap-3 sm:gap-4 ${
-            slide.cards.length === 3 ? 'sm:grid-cols-3' : slide.cards.length === 5 ? 'sm:grid-cols-6' : 'sm:grid-cols-3'
-          }`}
-        >
+        <div className={`mt-5 grid gap-2.5 ${slide.cards.length > 3 ? 'sm:grid-cols-2' : ''}`}>
           {slide.cards.map((card, i) => {
             const t = TONES[card.tone];
-            const span = slide.cards!.length === 5 ? (i < 3 ? 'sm:col-span-2' : 'sm:col-span-3') : '';
             return (
               <motion.div
                 key={card.title}
                 variants={rise}
-                className={`rounded-2xl p-5 ${span}`}
+                className="flex items-start gap-3 rounded-2xl p-3.5"
                 style={{ background: t.soft }}
               >
                 <span
-                  className="flex h-10 w-10 items-center justify-center rounded-xl text-[16px] font-black text-white"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-[15px] font-black text-white shadow-[0_4px_10px_rgba(15,23,42,0.12)]"
                   style={{ background: t.tile }}
                 >
                   {i + 1}
                 </span>
-                <h3 className="mt-3 text-[18px] font-extrabold tracking-[-0.02em]" style={{ color: t.ink }}>
-                  {card.title}
-                </h3>
-                {card.text && <p className="mt-1 text-pretty text-[14.5px] font-medium leading-[1.45] text-[#334155]">{card.text}</p>}
+                <div className="min-w-0">
+                  <h3 className="text-[16px] font-extrabold leading-tight tracking-[-0.02em]" style={{ color: t.ink }}>
+                    {card.title}
+                  </h3>
+                  {card.text && <p className="mt-0.5 text-pretty text-[13.5px] font-medium leading-[1.4] text-[#334155]">{card.text}</p>}
+                </div>
               </motion.div>
             );
           })}
@@ -292,21 +274,22 @@ function SlideBody({ slide }: { slide: Slide }) {
       )}
 
       {slide.columns && (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+        <div className="mt-5 grid gap-2.5 sm:grid-cols-2">
           {slide.columns.map((col) => {
             const t = TONES[col.tone];
             return (
-              <motion.div key={col.heading} variants={rise} className="rounded-2xl p-5 sm:p-6" style={{ background: t.soft }}>
-                <h3 className="text-[19px] font-extrabold tracking-[-0.02em]" style={{ color: t.ink }}>
+              <motion.div key={col.heading} variants={rise} className="rounded-2xl p-4" style={{ background: t.soft }}>
+                <h3 className="flex items-center gap-2 text-[16px] font-extrabold tracking-[-0.02em]" style={{ color: t.ink }}>
+                  <Mark kind={col.mark} color={t.tile} />
                   {col.heading}
                 </h3>
-                <motion.ul variants={list} className="mt-3 space-y-2.5">
+                <motion.ul variants={list} className="mt-3 space-y-2">
                   {col.items.map((item) => (
-                    <motion.li key={item.title} variants={rise} className="flex items-start gap-3">
-                      <Mark kind={col.mark} color={t.tile} />
-                      <p className="pt-0.5 text-[15.5px] font-bold leading-[1.35] text-[#0F172A]">
+                    <motion.li key={item.title} variants={rise} className="flex items-start gap-2">
+                      <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: t.tile }} />
+                      <p className="text-[14px] font-bold leading-[1.35] text-[#0F172A]">
                         {item.title}
-                        {item.text && <span className="font-medium text-[#475569]"> · {item.text}</span>}
+                        {item.text && <span className="block text-[12.5px] font-medium text-[#475569]">{item.text}</span>}
                       </p>
                     </motion.li>
                   ))}
@@ -320,8 +303,9 @@ function SlideBody({ slide }: { slide: Slide }) {
       {slide.note && (
         <motion.p
           variants={rise}
-          className="mt-4 rounded-2xl border border-[rgba(15,23,42,0.08)] bg-[#F8FAFC] px-5 py-3.5 text-pretty text-[14.5px] font-semibold leading-[1.45] text-[#334155]"
+          className="mt-3 flex items-start gap-2.5 rounded-2xl bg-[#0F172A] px-4 py-3 text-pretty text-[13.5px] font-semibold leading-[1.45] text-white"
         >
+          <span className="mt-px flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#F43F5E] text-[12px] font-black">!</span>
           {slide.note}
         </motion.p>
       )}
@@ -408,7 +392,7 @@ export function Presentation({ onStart }: { onStart: () => void }) {
             {index + 1} / {SLIDES.length}
           </span>
         </div>
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+        <div className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 sm:block">
           <h1 className="whitespace-nowrap text-[17px] font-black tracking-[-0.035em] sm:text-[22px]">Estación 2</h1>
         </div>
         <button
@@ -435,12 +419,17 @@ export function Presentation({ onStart }: { onStart: () => void }) {
               animate="center"
               exit="exit"
               transition={spring}
-              className={`absolute inset-0 flex overflow-y-auto rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white p-6 shadow-[0_8px_40px_rgba(15,23,42,0.06)] sm:p-12 ${
-                slide.cover ? 'items-center justify-center' : 'items-start'
-              }`}
+              className="absolute inset-0 overflow-y-auto rounded-[28px] border border-[rgba(15,23,42,0.08)] bg-white shadow-[0_10px_40px_rgba(15,23,42,0.07)]"
             >
-              <div className="my-auto w-full">
-                <SlideBody slide={slide} />
+              <div className="grid min-h-full lg:grid-cols-[minmax(0,1fr)_minmax(0,1.02fr)]">
+                <div className="order-2 flex items-center px-5 pb-6 pt-4 sm:px-10 sm:pb-10 lg:order-1 lg:py-10 lg:pl-12 lg:pr-6">
+                  <SlideText slide={slide} />
+                </div>
+                <div className="order-1 p-2.5 sm:p-3 lg:order-2">
+                  <div className="h-[36vh] overflow-hidden rounded-[22px] lg:h-full" style={{ background: slide.artBg }}>
+                    <slide.art />
+                  </div>
+                </div>
               </div>
             </motion.section>
           </AnimatePresence>
