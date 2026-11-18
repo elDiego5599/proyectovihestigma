@@ -92,7 +92,7 @@ const SLIDES: Slide[] = [
     artBg: '#FFF1F2',
     layout: 'cover',
     title: '¿Mito o realidad?',
-    lead: '10 situaciones. Tú decides.',
+    lead: '5 situaciones. Tú decides.',
     cover: true,
   },
 ];

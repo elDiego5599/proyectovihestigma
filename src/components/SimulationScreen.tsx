@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ComponentType } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SCENARIOS, type Answer } from '../data/scenarios';
 import { MosquitoScenario } from './scenarios/MosquitoScenario';
@@ -12,18 +12,31 @@ import { HivAidsScenario } from './scenarios/HivAidsScenario';
 import { TattooScenario } from './scenarios/TattooScenario';
 import { AnyoneScenario } from './scenarios/AnyoneScenario';
 
-const SCENE_ART = [
-  MosquitoScenario,
-  SocialContactScenario,
-  BloodborneScenario,
-  SexualRiskScenario,
-  MotherChildScenario,
-  HygieneScenario,
-  AppearanceScenario,
-  HivAidsScenario,
-  TattooScenario,
-  AnyoneScenario,
-];
+const SCENE_ART: Record<string, ComponentType<{ isResolved?: boolean }>> = {
+  mosquito: MosquitoScenario,
+  social: SocialContactScenario,
+  bloodborne: BloodborneScenario,
+  sexual: SexualRiskScenario,
+  'mother-child': MotherChildScenario,
+  hygiene: HygieneScenario,
+  appearance: AppearanceScenario,
+  'hiv-aids': HivAidsScenario,
+  tattoo: TattooScenario,
+  anyone: AnyoneScenario,
+};
+
+/** Las 5 situaciones más difíciles de responder. */
+const ROUND_IDS = ['mosquito', 'sexual', 'mother-child', 'hiv-aids', 'tattoo'];
+
+/** Orden nuevo y aleatorio en cada partida. */
+function shuffledRound(): string[] {
+  const ids = [...ROUND_IDS];
+  for (let i = ids.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [ids[i], ids[j]] = [ids[j], ids[i]];
+  }
+  return ids;
+}
 
 function ArrowIcon() {
   return (
@@ -83,6 +96,7 @@ function CrossIcon() {
 const STORAGE_KEY = 'mito-realidad-progreso';
 
 interface Progress {
+  order: string[];
   index: number;
   answer: Answer | null;
   results: boolean[];
@@ -91,10 +105,14 @@ interface Progress {
 
 /** Progreso guardado: recargar la página no reinicia la actividad. */
 function loadProgress(): Progress {
-  const empty: Progress = { index: 0, answer: null, results: [], finished: false };
+  const empty: Progress = { order: shuffledRound(), index: 0, answer: null, results: [], finished: false };
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Progress | null;
-    if (saved && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < SCENARIOS.length) {
+    const validOrder =
+      Array.isArray(saved?.order) &&
+      saved.order.length === ROUND_IDS.length &&
+      ROUND_IDS.every((id) => saved.order.includes(id));
+    if (saved && validOrder && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < ROUND_IDS.length) {
       return { ...empty, ...saved };
     }
   } catch {
@@ -105,6 +123,7 @@ function loadProgress(): Progress {
 
 export function SimulationScreen({ onPresentation }: { onPresentation?: () => void }) {
   const [initial] = useState(loadProgress);
+  const [order, setOrder] = useState<string[]>(initial.order);
   const [index, setIndex] = useState(initial.index);
   const [answer, setAnswer] = useState<Answer | null>(initial.answer);
   const [results, setResults] = useState<boolean[]>(initial.results);
@@ -112,15 +131,16 @@ export function SimulationScreen({ onPresentation }: { onPresentation?: () => vo
 
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ index, answer, results, finished }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ order, index, answer, results, finished }));
     } catch {
       /* ignorar */
     }
-  }, [index, answer, results, finished]);
+  }, [order, index, answer, results, finished]);
 
-  const meta = SCENARIOS[index];
-  const SceneArt = SCENE_ART[index];
-  const isLast = index === SCENARIOS.length - 1;
+  const round = useMemo(() => order.map((id) => SCENARIOS.find((s) => s.id === id)!), [order]);
+  const meta = round[index];
+  const SceneArt = SCENE_ART[meta.id];
+  const isLast = index === round.length - 1;
   const isResolved = answer !== null;
   const isCorrect = isResolved && answer === meta.answer;
 
@@ -147,6 +167,7 @@ export function SimulationScreen({ onPresentation }: { onPresentation?: () => vo
     setAnswer(null);
     setResults([]);
     setFinished(false);
+    setOrder(shuffledRound());
     setIndex(0);
   };
 
@@ -179,7 +200,7 @@ export function SimulationScreen({ onPresentation }: { onPresentation?: () => vo
         {/* Lado izquierdo: indicador de pasos */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 sm:gap-1.5" aria-hidden="true">
-            {SCENARIOS.map((scenario, dotIndex) => (
+            {round.map((scenario, dotIndex) => (
               <span
                 key={scenario.id}
                 className={`h-2 rounded-full transition-all duration-300 ${
@@ -195,7 +216,7 @@ export function SimulationScreen({ onPresentation }: { onPresentation?: () => vo
             ))}
           </div>
           <span className="hidden text-[13px] font-bold tracking-tight text-[#475569] sm:inline">
-            {index + 1} / {SCENARIOS.length}
+            {index + 1} / {round.length}
           </span>
         </div>
 
@@ -247,15 +268,15 @@ export function SimulationScreen({ onPresentation }: { onPresentation?: () => vo
             className="my-6 w-full max-w-[520px] rounded-3xl border border-[rgba(15,23,42,0.08)] bg-white p-6 sm:p-8 text-center shadow-[0_8px_40px_rgba(15,23,42,0.08)]"
           >
             <p className="text-[34px] font-black leading-tight tracking-[-0.03em] text-[#0F172A]">
-              Acertaste {score} de {SCENARIOS.length}
+              Acertaste {score} de {round.length}
             </p>
             <p className="mx-auto mt-2 max-w-[380px] text-pretty text-[15px] font-medium leading-[1.45] text-[#64748B]">
-              {score === SCENARIOS.length
+              {score === round.length
                 ? '¡Perfecto! Conoces bien el VIH.'
                 : 'Revisa las marcadas en rojo.'}
             </p>
             <ul className="mt-6 grid gap-1.5 text-left">
-              {SCENARIOS.map((s, i) => {
+              {round.map((s, i) => {
                 const ok = results[i];
                 return (
                   <li
