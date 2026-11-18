@@ -25,17 +25,17 @@ const SCENE_ART: Record<string, ComponentType<{ isResolved?: boolean }>> = {
   anyone: AnyoneScenario,
 };
 
-/** Las 5 situaciones más difíciles de responder. */
-const ROUND_IDS = ['mosquito', 'sexual', 'mother-child', 'hiv-aids', 'tattoo'];
+/** Cuántas situaciones salen por partida. */
+const ROUND_SIZE = 5;
 
-/** Orden nuevo y aleatorio en cada partida. */
+/** Cada partida toma 5 de las 10 situaciones al azar y en orden aleatorio. */
 function shuffledRound(): string[] {
-  const ids = [...ROUND_IDS];
+  const ids = SCENARIOS.map((s) => s.id);
   for (let i = ids.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [ids[i], ids[j]] = [ids[j], ids[i]];
   }
-  return ids;
+  return ids.slice(0, ROUND_SIZE);
 }
 
 function ArrowIcon() {
@@ -110,9 +110,10 @@ function loadProgress(): Progress {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Progress | null;
     const validOrder =
       Array.isArray(saved?.order) &&
-      saved.order.length === ROUND_IDS.length &&
-      ROUND_IDS.every((id) => saved.order.includes(id));
-    if (saved && validOrder && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < ROUND_IDS.length) {
+      saved.order.length === ROUND_SIZE &&
+      new Set(saved.order).size === ROUND_SIZE &&
+      saved.order.every((id) => SCENARIOS.some((s) => s.id === id));
+    if (saved && validOrder && Number.isInteger(saved.index) && saved.index >= 0 && saved.index < ROUND_SIZE) {
       return { ...empty, ...saved };
     }
   } catch {
